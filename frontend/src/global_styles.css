@@ -1,30 +1,24 @@
-/* Angular Material Theme */
-@import '~@angular/material/theming';
+/* Angular Material - Usar tema precompilado para evitar errores de compatibilidad */
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
 
-/* Include the common styles for Angular Material */
-@include mat-core();
-
-/* Define custom Material theme */
-$task-primary: mat-palette($mat-blue, 500, 300, 700);
-$task-accent: mat-palette($mat-orange, 500, 300, 700);
-$task-warn: mat-palette($mat-red, 500, 300, 700);
-
-/* Create the theme */
-$task-theme: mat-light-theme((
-  color: (
-    primary: $task-primary,
-    accent: $task-accent,
-    warn: $task-warn,
-  )
-));
-
-/* Include theme styles for Angular Material components */
-@include angular-material-theme($task-theme);
+/* Si prefieres otros temas precompilados, puedes usar: */
+/* @import '@angular/material/prebuilt-themes/deeppurple-amber.css'; */
+/* @import '@angular/material/prebuilt-themes/pink-bluegrey.css'; */
+/* @import '@angular/material/prebuilt-themes/purple-green.css'; */
 
 /* Tailwind CSS */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Sobrescribir colores de Material con nuestros colores personalizados */
+:root {
+  --mdc-theme-primary: #2196F3;
+  --mdc-theme-secondary: #FF9800;
+  --mdc-theme-error: #F44336;
+  --mdc-theme-success: #4CAF50;
+  --mdc-theme-warning: #FFC107;
+}
 
 /* Custom component styles combining Material + Tailwind */
 @layer components {
@@ -139,6 +133,35 @@ $task-theme: mat-light-theme((
   @apply text-green-600 text-sm mt-1;
 }
 
+/* Personalización adicional de Material Components */
+.mat-mdc-raised-button {
+  @apply rounded-lg shadow-md hover:shadow-lg transition-all duration-200;
+}
+
+.mat-mdc-outlined-button {
+  @apply rounded-lg border-2 hover:shadow-md transition-all duration-200;
+}
+
+.mat-mdc-flat-button {
+  @apply rounded-lg hover:bg-opacity-10 transition-all duration-200;
+}
+
+/* Personalizar colores de botones */
+.mat-primary {
+  --mdc-filled-button-container-color: #2196F3;
+  --mdc-outlined-button-outline-color: #2196F3;
+}
+
+.mat-accent {
+  --mdc-filled-button-container-color: #FF9800;
+  --mdc-outlined-button-outline-color: #FF9800;
+}
+
+.mat-warn {
+  --mdc-filled-button-container-color: #F44336;
+  --mdc-outlined-button-outline-color: #F44336;
+}
+
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
   .mat-mdc-card {
@@ -181,4 +204,11 @@ $task-theme: mat-light-theme((
   .main-content {
     @apply bg-white;
   }
+}
+
+/* Asegurar que body y html tengan el estilo correcto */
+html, body { 
+  height: 100%; 
+  margin: 0; 
+  font-family: Roboto, "Helvetica Neue", sans-serif; 
 }
