@@ -455,7 +455,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
   }
 
   trackByTaskId(index: number, task: Task): number {
-    return task.id ?? index;
+    return task.id ?? 0;
   }
 
   getPriorityLabel(priority: Priority): string {
@@ -494,7 +494,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
     return classes[status] || '';
   }
 
-  getDaysUntilDue(dueDate: Date | null): string {
+  getDaysUntilDue(dueDate: Date | undefined): string {
     if (!dueDate) return '';
 
     const today = new Date();
