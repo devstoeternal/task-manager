@@ -2,21 +2,26 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { AppComponent } from './app/app.component';
 import { provideRouter } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { importProvidersFrom } from '@angular/core';
+import { provideHttpClient, withInterceptors, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { importProvidersFrom, inject } from '@angular/core';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatNativeDateModule } from '@angular/material/core';
 import { AuthInterceptor } from './app/core/interceptors/auth.interceptor';
 import { ErrorInterceptor } from './app/core/interceptors/error.interceptor';
+import { AuthGuard, NoAuthGuard } from './app/core/guards/auth.guard';
 
-// Definir rutas aquí mismo para evitar conflictos
+// 🔧 RUTAS CORREGIDAS CON GUARDS APLICADOS
 const appRoutes = [
   {
     path: '',
     redirectTo: '/dashboard',
     pathMatch: 'full' as const
   },
+
+  // 🔓 Rutas públicas (solo accesibles cuando NO estás autenticado)
   {
     path: 'auth',
+    canActivate: [(route: any, state: any) => inject(AuthGuard).canActivate(route, state)],
     children: [
       {
         path: '',
@@ -33,39 +38,50 @@ const appRoutes = [
       }
     ]
   },
+
+  // 🔒 Rutas protegidas (requieren autenticación)
   {
-    path: 'dashboard',
-    loadComponent: () => import('./app/features/dashboard/components/dashboard.component').then(c => c.DashboardComponent)
-  },
-  {
-    path: 'tasks',
+    path: '',
+    canActivate: [(route: any, state: any) => inject(AuthGuard).canActivate(route, state)],
+    loadComponent: () => import('./app/layouts/main-layout/main-layout.component').then(c => c.MainLayoutComponent),
     children: [
       {
-        path: '',
-        loadComponent: () => import('./app/features/tasks/components/task-list.component').then(c => c.TaskListComponent)
+        path: 'dashboard',
+        loadComponent: () => import('./app/features/dashboard/components/dashboard.component').then(c => c.DashboardComponent)
       },
       {
-        path: 'new',
-        loadComponent: () => import('./app/features/tasks/components/task-form.component').then(c => c.TaskFormComponent)
+        path: 'tasks',
+        children: [
+          {
+            path: '',
+            loadComponent: () => import('./app/features/tasks/components/task-list.component').then(c => c.TaskListComponent)
+          },
+          {
+            path: 'new',
+            loadComponent: () => import('./app/features/tasks/components/task-form.component').then(c => c.TaskFormComponent)
+          },
+          {
+            path: ':id',
+            loadComponent: () => import('./app/features/tasks/components/task-detail.component').then(c => c.TaskDetailComponent)
+          },
+          {
+            path: ':id/edit',
+            loadComponent: () => import('./app/features/tasks/components/task-form.component').then(c => c.TaskFormComponent)
+          }
+        ]
       },
       {
-        path: ':id',
-        loadComponent: () => import('./app/features/tasks/components/task-detail.component').then(c => c.TaskDetailComponent)
+        path: 'profile',
+        loadComponent: () => import('./app/features/profile/components/profile.component').then(c => c.ProfileComponent)
       },
       {
-        path: ':id/edit',
-        loadComponent: () => import('./app/features/tasks/components/task-form.component').then(c => c.TaskFormComponent)
+        path: 'settings',
+        loadComponent: () => import('./app/features/settings/components/settings.component').then(c => c.SettingsComponent)
       }
     ]
   },
-  {
-    path: 'profile',
-    loadComponent: () => import('./app/features/profile/components/profile.component').then(c => c.ProfileComponent)
-  },
-  {
-    path: 'settings',
-    loadComponent: () => import('./app/features/settings/components/settings.component').then(c => c.SettingsComponent)
-  },
+
+  // Fallback route
   {
     path: '**',
     redirectTo: '/dashboard',
@@ -73,30 +89,60 @@ const appRoutes = [
   }
 ];
 
-// Función interceptor para Auth
-function authInterceptor(req: any, next: any) {
-  const token = localStorage.getItem('token');
-  if (token) {
-    const authReq = req.clone({
-      headers: req.headers.set('Authorization', `Bearer ${token}`)
-    });
-    return next(authReq);
-  }
-  return next(req);
+// 🔧 INTERCEPTORS CORREGIDOS - Usar las clases reales
+function createAuthInterceptor() {
+  return (req: any, next: any) => {
+    const authInterceptor = inject(AuthInterceptor);
+    return authInterceptor.intercept(req, next);
+  };
 }
 
-// Función interceptor para Errores
-function errorInterceptor(req: any, next: any) {
-  return next(req); // Simplificado por ahora
+function createErrorInterceptor() {
+  return (req: any, next: any) => {
+    const errorInterceptor = inject(ErrorInterceptor);
+    return errorInterceptor.intercept(req, next);
+  };
 }
 
+// 🚀 BOOTSTRAP DE LA APLICACIÓN
 bootstrapApplication(AppComponent, {
   providers: [
+    // Router con rutas protegidas
     provideRouter(appRoutes),
+
+    // Animaciones para Material Design
     provideAnimations(),
+
+    // HTTP Client con interceptors corregidos
     provideHttpClient(
-      withInterceptors([authInterceptor, errorInterceptor])
+      withInterceptors([
+        createAuthInterceptor(),
+        createErrorInterceptor()
+      ])
     ),
-    importProvidersFrom(MatSnackBarModule)
+
+    // Material Design modules
+    importProvidersFrom(
+      MatSnackBarModule,
+      MatNativeDateModule
+    ),
+
+    // Guards como providers
+    AuthGuard,
+    NoAuthGuard,
+
+    // Interceptors como providers (backup)
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: AuthInterceptor,
+      multi: true
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: ErrorInterceptor,
+      multi: true
+    }
   ]
-}).catch(err => console.error(err));
+}).catch(err => {
+  console.error('Error starting application:', err);
+});

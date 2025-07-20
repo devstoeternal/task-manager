@@ -13,6 +13,8 @@ import { MatDividerModule } from '@angular/material/divider';
 import { AuthService } from '../../core/services/auth.service';
 import { UI_LABELS } from '../../shared/constants/ui-labels.constants';
 import { User } from '../../shared/models/user.interface';
+import { RouterModule } from '@angular/router';
+
 
 @Component({
   selector: 'app-main-layout',
@@ -26,7 +28,8 @@ import { User } from '../../shared/models/user.interface';
     MatIconModule,
     MatListModule,
     MatMenuModule,
-    MatDividerModule
+    MatDividerModule,
+    RouterModule
   ],
   template: `
     <div class="layout-container">
@@ -39,7 +42,7 @@ import { User } from '../../shared/models/user.interface';
           fixedInViewport
           [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
           [mode]="(isHandset$ | async) ? 'over' : 'side'"
-          [opened]="(isHandset$ | async) === false">
+          [opened]="!(isHandset$ | async)">
           
           <!-- Sidebar Header -->
           <div class="sidebar-header p-4 bg-primary-500 text-white">
@@ -318,17 +321,17 @@ import { User } from '../../shared/models/user.interface';
 })
 export class MainLayoutComponent implements OnInit, OnDestroy {
   labels = UI_LABELS;
-  
+
   currentUser: User | null = null;
   isHandset$ = this.breakpointObserver.observe(Breakpoints.Handset);
-  
+
   private destroy$ = new Subject<void>();
 
   constructor(
     private breakpointObserver: BreakpointObserver,
     private authService: AuthService,
     private router: Router
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     // Subscribe to current user
@@ -346,7 +349,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   getPageTitle(): string {
     const url = this.router.url;
-    
+
     if (url.includes('/dashboard')) {
       return this.labels.DASHBOARD;
     } else if (url.includes('/tasks/new')) {
@@ -360,7 +363,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     } else if (url.includes('/settings')) {
       return this.labels.SETTINGS;
     }
-    
+
     return this.labels.APP_TITLE;
   }
 

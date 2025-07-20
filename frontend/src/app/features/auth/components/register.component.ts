@@ -1,14 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl } from '@angular/forms';
+import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/services/auth.service';
 import { UI_LABELS } from '../../../shared/constants/ui-labels.constants';
 import { RegisterRequest } from '../../../shared/models/user.interface';
@@ -19,36 +20,51 @@ import { RegisterRequest } from '../../../shared/models/user.interface';
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    RouterModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatCheckboxModule,
+    MatSnackBarModule
   ],
   template: `
-    <div class="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div class="max-w-md w-full space-y-8 animate-fade-in">
-        <!-- Logo and Title -->
-        <div class="text-center">
-          <div class="mx-auto h-12 w-12 bg-primary-500 rounded-full flex items-center justify-center mb-4">
-            <mat-icon class="text-white text-2xl">person_add</mat-icon>
+    <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div class="w-full max-w-md animate-fade-in">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-primary-500 rounded-full mb-4">
+            <mat-icon class="text-white text-3xl">person_add</mat-icon>
           </div>
-          <h2 class="text-3xl font-bold text-gray-900 mb-2">{{labels.APP_TITLE}}</h2>
-          <p class="text-gray-600">{{labels.REGISTER}}</p>
+          <h1 class="text-3xl font-bold text-gray-900 mb-2">{{labels.CREATE_ACCOUNT}}</h1>
+          <p class="text-gray-600">{{labels.JOIN_PLATFORM}}</p>
         </div>
 
-        <!-- Register Form -->
+        <!-- Registration Form -->
         <mat-card class="p-8 shadow-xl border-0">
           <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-6">
-            <!-- First Name Field -->
+            
+            <!-- Error Message -->
+            <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div class="flex items-start">
+                <mat-icon class="text-red-500 mt-0.5 mr-2">error_outline</mat-icon>
+                <div>
+                  <h3 class="text-red-800 font-medium">Error en el registro</h3>
+                  <p class="text-red-700 text-sm mt-1">{{errorMessage}}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- First Name -->
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>{{labels.FIRST_NAME}}</mat-label>
               <input 
                 matInput 
-                type="text" 
                 formControlName="firstName"
-                [placeholder]="labels.FIRST_NAME"
+                [placeholder]="labels.FIRST_NAME_PLACEHOLDER"
                 autocomplete="given-name">
               <mat-icon matSuffix>person</mat-icon>
               <mat-error *ngIf="registerForm.get('firstName')?.hasError('required')">
@@ -59,16 +75,15 @@ import { RegisterRequest } from '../../../shared/models/user.interface';
               </mat-error>
             </mat-form-field>
 
-            <!-- Last Name Field -->
+            <!-- Last Name -->
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>{{labels.LAST_NAME}}</mat-label>
               <input 
                 matInput 
-                type="text" 
                 formControlName="lastName"
-                [placeholder]="labels.LAST_NAME"
+                [placeholder]="labels.LAST_NAME_PLACEHOLDER"
                 autocomplete="family-name">
-              <mat-icon matSuffix>person_outline</mat-icon>
+              <mat-icon matSuffix>person</mat-icon>
               <mat-error *ngIf="registerForm.get('lastName')?.hasError('required')">
                 {{labels.REQUIRED_FIELD}}
               </mat-error>
@@ -77,14 +92,14 @@ import { RegisterRequest } from '../../../shared/models/user.interface';
               </mat-error>
             </mat-form-field>
 
-            <!-- Email Field -->
+            <!-- Email -->
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>{{labels.EMAIL}}</mat-label>
               <input 
                 matInput 
-                type="email" 
+                type="email"
                 formControlName="email"
-                [placeholder]="labels.EMAIL"
+                [placeholder]="labels.EMAIL_PLACEHOLDER"
                 autocomplete="email">
               <mat-icon matSuffix>email</mat-icon>
               <mat-error *ngIf="registerForm.get('email')?.hasError('required')">
@@ -95,14 +110,14 @@ import { RegisterRequest } from '../../../shared/models/user.interface';
               </mat-error>
             </mat-form-field>
 
-            <!-- Password Field -->
+            <!-- Password -->
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>{{labels.PASSWORD}}</mat-label>
               <input 
                 matInput 
                 [type]="hidePassword ? 'password' : 'text'"
                 formControlName="password"
-                [placeholder]="labels.PASSWORD"
+                [placeholder]="labels.PASSWORD_PLACEHOLDER"
                 autocomplete="new-password">
               <button 
                 mat-icon-button 
@@ -117,28 +132,28 @@ import { RegisterRequest } from '../../../shared/models/user.interface';
                 {{labels.REQUIRED_FIELD}}
               </mat-error>
               <mat-error *ngIf="registerForm.get('password')?.hasError('minlength')">
-                Mínimo 8 caracteres
+                Mínimo 6 caracteres
               </mat-error>
               <mat-error *ngIf="registerForm.get('password')?.hasError('pattern')">
-                Debe contener al menos una mayúscula, una minúscula y un número
+                Debe contener al menos: 1 mayúscula, 1 minúscula y 1 número
               </mat-error>
             </mat-form-field>
 
-            <!-- Confirm Password Field -->
+            <!-- Confirm Password -->
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>{{labels.CONFIRM_PASSWORD}}</mat-label>
               <input 
                 matInput 
                 [type]="hideConfirmPassword ? 'password' : 'text'"
                 formControlName="confirmPassword"
-                [placeholder]="labels.CONFIRM_PASSWORD"
+                [placeholder]="labels.CONFIRM_PASSWORD_PLACEHOLDER"
                 autocomplete="new-password">
               <button 
                 mat-icon-button 
                 matSuffix 
                 type="button"
                 (click)="hideConfirmPassword = !hideConfirmPassword"
-                [attr.aria-label]="'Hide confirm password'"
+                [attr.aria-label]="'Hide password'"
                 [attr.aria-pressed]="hideConfirmPassword">
                 <mat-icon>{{hideConfirmPassword ? 'visibility_off' : 'visibility'}}</mat-icon>
               </button>
@@ -150,38 +165,47 @@ import { RegisterRequest } from '../../../shared/models/user.interface';
               </mat-error>
             </mat-form-field>
 
-            <!-- Error Message -->
-            <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 rounded-md p-3">
-              <div class="flex">
-                <mat-icon class="text-red-400 mr-2">error</mat-icon>
-                <div class="text-sm text-red-700">{{errorMessage}}</div>
+            <!-- Terms Acceptance -->
+            <div class="flex items-start space-x-3">
+              <mat-checkbox 
+                formControlName="acceptTerms"
+                color="primary"
+                class="mt-1">
+              </mat-checkbox>
+              <div class="text-sm text-gray-600">
+                <p>
+                  Acepto los 
+                  <a href="#" class="text-primary-600 hover:text-primary-700 font-medium">términos y condiciones</a> 
+                  y la 
+                  <a href="#" class="text-primary-600 hover:text-primary-700 font-medium">política de privacidad</a>
+                </p>
+                <mat-error *ngIf="registerForm.get('acceptTerms')?.hasError('required') && registerForm.get('acceptTerms')?.touched">
+                  Debes aceptar los términos y condiciones
+                </mat-error>
               </div>
             </div>
 
             <!-- Submit Button -->
             <button 
               mat-raised-button 
-              color="primary" 
+              color="primary"
               type="submit"
-              [disabled]="registerForm.invalid || isLoading"
-              class="w-full h-12 text-base font-medium">
-              <div class="flex items-center justify-center space-x-2">
-                <mat-spinner *ngIf="isLoading" diameter="20" class="mr-2"></mat-spinner>
-                <span>{{isLoading ? labels.LOADING : labels.REGISTER}}</span>
-              </div>
+              class="w-full h-12 text-lg font-medium"
+              [disabled]="registerForm.invalid || isLoading">
+              
+              <mat-spinner diameter="20" class="mr-2" *ngIf="isLoading"></mat-spinner>
+              {{isLoading ? 'Creando cuenta...' : labels.CREATE_ACCOUNT}}
             </button>
 
-            <!-- Sign In Link -->
-            <div class="text-center">
-              <p class="text-sm text-gray-600">
-                {{labels.SIGN_IN_ALTERNATIVE}}
+            <!-- Login Link -->
+            <div class="text-center pt-4">
+              <p class="text-gray-600">
+                ¿Ya tienes cuenta? 
                 <button 
-                  type="button" 
-                  mat-button 
-                  color="primary" 
+                  type="button"
                   (click)="navigateToLogin()"
-                  class="ml-1">
-                  {{labels.LOGIN}}
+                  class="text-primary-600 hover:text-primary-700 font-medium focus:outline-none focus:underline">
+                  {{labels.SIGN_IN_ALTERNATIVE}}
                 </button>
               </p>
             </div>
@@ -189,21 +213,32 @@ import { RegisterRequest } from '../../../shared/models/user.interface';
         </mat-card>
 
         <!-- Footer -->
-        <div class="text-center">
-          <p class="text-xs text-gray-500">
-            © 2025 Sistema de Gestión de Tareas. Todos los derechos reservados.
+        <div class="text-center mt-8">
+          <p class="text-sm text-gray-500">
+            Sistema de Gestión de Tareas v1.0 &copy; 2025.<br>
+            Todos los derechos reservados.
           </p>
         </div>
       </div>
     </div>
   `,
   styles: [`
+    .error-snackbar {
+      background-color: #f44336;
+      color: white;
+    }
+
+    .success-snackbar {
+      background-color: #4caf50;
+      color: white;
+    }
+
     .mat-mdc-form-field {
       margin-bottom: 0;
     }
 
     .mat-mdc-card {
-      border-radius: 12px;
+      border-radius: 16px;
     }
 
     .mat-mdc-raised-button {
@@ -217,6 +252,22 @@ import { RegisterRequest } from '../../../shared/models/user.interface';
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    .bg-primary-500 {
+      background-color: #2196F3;
+    }
+
+    .text-primary-600 {
+      color: #1976D2;
+    }
+
+    .text-primary-700 {
+      color: #1565C0;
+    }
+
+    .hover\\:text-primary-700:hover {
+      color: #1565C0;
     }
   `]
 })
@@ -246,27 +297,41 @@ export class RegisterComponent implements OnInit {
 
   private createForm(): FormGroup {
     return this.fb.group({
-      firstName: ['', [Validators.required, Validators.minLength(2)]],
-      lastName: ['', [Validators.required, Validators.minLength(2)]],
+      firstName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
+      lastName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [
         Validators.required, 
-        Validators.minLength(8),
-        Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+        Validators.minLength(6),
+        Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/)
       ]],
-      confirmPassword: ['', [Validators.required]]
-    }, { validators: this.passwordMatchValidator });
+      confirmPassword: ['', [Validators.required]],
+      acceptTerms: [false, [Validators.requiredTrue]]
+    }, { 
+      validators: this.passwordMatchValidator 
+    });
   }
 
-  private passwordMatchValidator(form: FormGroup) {
-    const password = form.get('password');
-    const confirmPassword = form.get('confirmPassword');
-    
+  /**
+   * Custom validator to check if passwords match
+   */
+  private passwordMatchValidator(control: AbstractControl): {[key: string]: any} | null {
+    const password = control.get('password');
+    const confirmPassword = control.get('confirmPassword');
+
     if (password && confirmPassword && password.value !== confirmPassword.value) {
       confirmPassword.setErrors({ passwordMismatch: true });
       return { passwordMismatch: true };
     }
-    
+
+    // Clear the error if passwords match
+    if (confirmPassword?.hasError('passwordMismatch')) {
+      const errors = { ...confirmPassword.errors };
+      delete errors['passwordMismatch'];
+      const hasErrors = Object.keys(errors).length > 0;
+      confirmPassword.setErrors(hasErrors ? errors : null);
+    }
+
     return null;
   }
 
@@ -276,17 +341,17 @@ export class RegisterComponent implements OnInit {
       this.errorMessage = '';
 
       const registerRequest: RegisterRequest = {
-        firstName: this.registerForm.value.firstName,
-        lastName: this.registerForm.value.lastName,
         email: this.registerForm.value.email,
-        password: this.registerForm.value.password
+        password: this.registerForm.value.password,
+        firstName: this.registerForm.value.firstName,
+        lastName: this.registerForm.value.lastName
       };
 
       this.authService.register(registerRequest).subscribe({
         next: (response) => {
           this.isLoading = false;
-          this.snackBar.open(this.labels.REGISTER_SUCCESS, 'Cerrar', {
-            duration: 3000,
+          this.snackBar.open('¡Cuenta creada exitosamente! Bienvenido al sistema.', 'Cerrar', {
+            duration: 4000,
             panelClass: ['success-snackbar'],
             horizontalPosition: 'center',
             verticalPosition: 'top'
@@ -297,7 +362,7 @@ export class RegisterComponent implements OnInit {
         },
         error: (error) => {
           this.isLoading = false;
-          this.errorMessage = error.message || this.labels.REGISTER_ERROR;
+          this.errorMessage = error.message || 'Error al crear la cuenta. Inténtalo de nuevo.';
           console.error('Registration error:', error);
         }
       });

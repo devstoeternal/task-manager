@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
-import { map, catchError, tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, throwError, timer } from 'rxjs';
+import { map, catchError, tap, switchMap } from 'rxjs/operators';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
 import { 
   LoginRequest, 
   RegisterRequest, 
@@ -16,16 +17,20 @@ import {
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly API_URL = '/api/auth';
-  private readonly TOKEN_KEY = 'auth_token';
-  private readonly REFRESH_TOKEN_KEY = 'refresh_token';
-  private readonly USER_KEY = 'current_user';
+  // 🔧 URLs y KEYS UNIFICADAS con environment
+  private readonly API_URL = `${environment.apiUrl}/auth`;
+  private readonly TOKEN_KEY = environment.tokenConfig.tokenKey;
+  private readonly REFRESH_TOKEN_KEY = environment.tokenConfig.refreshTokenKey;
+  private readonly USER_KEY = environment.tokenConfig.userKey;
 
+  // Subjects para reactive state management
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
+
+  private refreshTokenTimer?: any;
 
   constructor(
     private http: HttpClient,
@@ -35,20 +40,23 @@ export class AuthService {
   }
 
   /**
-   * Initialize authentication state from localStorage
+   * 🔧 Initialize authentication state from localStorage
    */
   private initializeAuth(): void {
     const token = this.getToken();
     const user = this.getCurrentUser();
     
-    if (token && user) {
+    if (token && user && this.isTokenValid(token)) {
       this.currentUserSubject.next(user);
       this.isAuthenticatedSubject.next(true);
+      this.scheduleTokenRefresh();
+    } else {
+      this.clearAuthData();
     }
   }
 
   /**
-   * Login user with email and password
+   * 🔐 Login user with email and password
    */
   login(credentials: LoginRequest): Observable<AuthResponse> {
     return this.http.post<ApiResponse<AuthResponse>>(`${this.API_URL}/login`, credentials)
@@ -56,6 +64,7 @@ export class AuthService {
         map(response => {
           if (response.success && response.data) {
             this.setAuthData(response.data);
+            this.scheduleTokenRefresh();
             return response.data;
           }
           throw new Error(response.message || 'Login failed');
@@ -68,7 +77,7 @@ export class AuthService {
   }
 
   /**
-   * Register new user
+   * 📝 Register new user
    */
   register(userData: RegisterRequest): Observable<AuthResponse> {
     return this.http.post<ApiResponse<AuthResponse>>(`${this.API_URL}/register`, userData)
@@ -76,6 +85,7 @@ export class AuthService {
         map(response => {
           if (response.success && response.data) {
             this.setAuthData(response.data);
+            this.scheduleTokenRefresh();
             return response.data;
           }
           throw new Error(response.message || 'Registration failed');
@@ -88,7 +98,7 @@ export class AuthService {
   }
 
   /**
-   * Refresh authentication token
+   * 🔄 Refresh authentication token
    */
   refreshToken(): Observable<AuthResponse> {
     const refreshToken = this.getRefreshToken();
@@ -103,6 +113,7 @@ export class AuthService {
         map(response => {
           if (response.success && response.data) {
             this.setAuthData(response.data);
+            this.scheduleTokenRefresh();
             return response.data;
           }
           throw new Error(response.message || 'Token refresh failed');
@@ -116,7 +127,7 @@ export class AuthService {
   }
 
   /**
-   * Logout user and clear authentication data
+   * 🚪 Logout user and clear authentication data
    */
   logout(): void {
     // Call logout endpoint to invalidate token on server
@@ -127,26 +138,27 @@ export class AuthService {
       });
     }
 
+    this.clearRefreshTimer();
     this.clearAuthData();
     this.router.navigate(['/auth/login']);
   }
 
   /**
-   * Get current authentication token
+   * 🎫 Get current authentication token
    */
   getToken(): string | null {
     return localStorage.getItem(this.TOKEN_KEY);
   }
 
   /**
-   * Get refresh token
+   * 🔄 Get refresh token
    */
   getRefreshToken(): string | null {
     return localStorage.getItem(this.REFRESH_TOKEN_KEY);
   }
 
   /**
-   * Get current user data
+   * 👤 Get current user data
    */
   getCurrentUser(): User | null {
     const userJson = localStorage.getItem(this.USER_KEY);
@@ -162,13 +174,19 @@ export class AuthService {
   }
 
   /**
-   * Check if user is authenticated
+   * ✅ Check if user is authenticated
    */
   isAuthenticated(): boolean {
     const token = this.getToken();
+    return token ? this.isTokenValid(token) : false;
+  }
+
+  /**
+   * 🔍 Check if token is valid and not expired
+   */
+  private isTokenValid(token: string): boolean {
     if (!token) return false;
 
-    // Check if token is expired
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const currentTime = Math.floor(Date.now() / 1000);
@@ -180,7 +198,7 @@ export class AuthService {
   }
 
   /**
-   * Set authentication data in localStorage and update subjects
+   * 💾 Set authentication data in localStorage and update subjects
    */
   private setAuthData(authResponse: AuthResponse): void {
     localStorage.setItem(this.TOKEN_KEY, authResponse.token);
@@ -192,7 +210,7 @@ export class AuthService {
   }
 
   /**
-   * Clear all authentication data
+   * 🧹 Clear all authentication data
    */
   private clearAuthData(): void {
     localStorage.removeItem(this.TOKEN_KEY);
@@ -204,10 +222,50 @@ export class AuthService {
   }
 
   /**
-   * Update user profile
+   * ⏰ Schedule automatic token refresh
+   */
+  private scheduleTokenRefresh(): void {
+    this.clearRefreshTimer();
+    
+    const token = this.getToken();
+    if (!token) return;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expirationTime = payload.exp * 1000; // Convert to milliseconds
+      const currentTime = Date.now();
+      const refreshTime = expirationTime - currentTime - environment.tokenConfig.tokenExpirationBuffer;
+
+      if (refreshTime > 0) {
+        this.refreshTokenTimer = timer(refreshTime).subscribe(() => {
+          this.refreshToken().subscribe({
+            error: (error) => {
+              console.error('Automatic token refresh failed:', error);
+              this.logout();
+            }
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error scheduling token refresh:', error);
+    }
+  }
+
+  /**
+   * 🛑 Clear refresh timer
+   */
+  private clearRefreshTimer(): void {
+    if (this.refreshTokenTimer) {
+      this.refreshTokenTimer.unsubscribe();
+      this.refreshTokenTimer = null;
+    }
+  }
+
+  /**
+   * 👤 Update user profile
    */
   updateProfile(userData: Partial<User>): Observable<User> {
-    return this.http.put<ApiResponse<User>>(`${this.API_URL}/profile`, userData)
+    return this.http.put<ApiResponse<User>>(`${environment.apiUrl}/users/profile`, userData)
       .pipe(
         map(response => {
           if (response.success && response.data) {
@@ -226,7 +284,7 @@ export class AuthService {
   }
 
   /**
-   * Change user password
+   * 🔒 Change user password
    */
   changePassword(oldPassword: string, newPassword: string): Observable<void> {
     const request = { oldPassword, newPassword };

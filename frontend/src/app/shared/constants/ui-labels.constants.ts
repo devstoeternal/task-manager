@@ -1,29 +1,36 @@
 export const UI_LABELS = {
-  // Application
   APP_TITLE: 'Sistema de Gestión de Tareas',
-  WELCOME: 'Bienvenido',
-  
+
   // Authentication
   LOGIN: 'Iniciar Sesión',
   REGISTER: 'Registrarse',
-  LOGOUT: 'Cerrar Sesión',
+  CREATE_ACCOUNT: 'Crear Cuenta',
+  JOIN_PLATFORM: 'Únete a nuestra plataforma de gestión de tareas',
   EMAIL: 'Correo Electrónico',
+  EMAIL_PLACEHOLDER: 'tu@email.com',
   PASSWORD: 'Contraseña',
-  FIRST_NAME: 'Nombre',
-  LAST_NAME: 'Apellido',
+  PASSWORD_PLACEHOLDER: 'Tu contraseña',
   CONFIRM_PASSWORD: 'Confirmar Contraseña',
-  FORGOT_PASSWORD: 'Olvidé mi contraseña',
+  CONFIRM_PASSWORD_PLACEHOLDER: 'Confirma tu contraseña',
+  FIRST_NAME: 'Nombre',
+  FIRST_NAME_PLACEHOLDER: 'Tu nombre',
+  LAST_NAME: 'Apellido',
+  LAST_NAME_PLACEHOLDER: 'Tu apellido',
   REMEMBER_ME: 'Recordarme',
-  SIGN_IN_ALTERNATIVE: '¿Ya tienes cuenta? Inicia sesión',
+  FORGOT_PASSWORD: 'Olvidé mi contraseña',
+  LOGIN_SUCCESS: 'Inicio de sesión exitoso',
+  LOGIN_ERROR: 'Error al iniciar sesión',
+  LOGOUT: 'Cerrar Sesión',
+  SIGN_IN_ALTERNATIVE: 'Inicia sesión',
   SIGN_UP_ALTERNATIVE: '¿No tienes cuenta? Regístrate',
-  
+
   // Navigation
   DASHBOARD: 'Panel Principal',
   TASKS: 'Tareas',
   MY_TASKS: 'Mis Tareas',
   PROFILE: 'Perfil',
   SETTINGS: 'Configuración',
-  
+
   // Tasks
   NEW_TASK: 'Nueva Tarea',
   EDIT_TASK: 'Editar Tarea',
@@ -36,17 +43,17 @@ export const UI_LABELS = {
   STATUS: 'Estado',
   CREATED_AT: 'Creado el',
   UPDATED_AT: 'Actualizado el',
-  
+
   // Task Status
   PENDING: 'Pendiente',
   IN_PROGRESS: 'En Progreso',
   COMPLETED: 'Completada',
-  
+
   // Task Priority
   LOW: 'Baja',
   MEDIUM: 'Media',
   HIGH: 'Alta',
-  
+
   // Actions
   SAVE: 'Guardar',
   CANCEL: 'Cancelar',
@@ -61,7 +68,7 @@ export const UI_LABELS = {
   BACK: 'Volver',
   NEXT: 'Siguiente',
   PREVIOUS: 'Anterior',
-  
+
   // Search and Filters
   SEARCH: 'Buscar',
   SEARCH_TASKS: 'Buscar tareas...',
@@ -70,7 +77,7 @@ export const UI_LABELS = {
   SORT_BY: 'Ordenar por',
   CLEAR_FILTERS: 'Limpiar filtros',
   ADVANCED_SEARCH: 'Búsqueda avanzada',
-  
+
   // Dashboard
   STATISTICS: 'Estadísticas',
   RECENT_TASKS: 'Tareas Recientes',
@@ -85,7 +92,7 @@ export const UI_LABELS = {
   TASKS_THIS_MONTH: 'Tareas este Mes',
   COMPLETION_RATE: 'Tasa de Finalización',
   PRODUCTIVITY_TRENDS: 'Tendencias de Productividad',
-  
+
   // Common
   DATE: 'Fecha',
   TIME: 'Hora',
@@ -94,13 +101,13 @@ export const UI_LABELS = {
   NO_DATA: 'No hay datos disponibles',
   NO_TASKS_FOUND: 'No se encontraron tareas',
   NO_RESULTS: 'No se encontraron resultados',
-  
+
   // Messages
   SUCCESS: 'Éxito',
   ERROR: 'Error',
   WARNING: 'Advertencia',
   INFO: 'Información',
-  
+
   // Form validation messages
   REQUIRED_FIELD: 'Este campo es requerido',
   INVALID_EMAIL: 'Ingresa un email válido',
@@ -109,60 +116,126 @@ export const UI_LABELS = {
   PASSWORDS_MUST_MATCH: 'Las contraseñas deben coincidir',
   INVALID_DATE: 'Fecha inválida',
   DATE_REQUIRED: 'La fecha es requerida',
-  
+
   // Confirmation messages
   DELETE_TASK_CONFIRM: '¿Estás seguro de que deseas eliminar esta tarea?',
   DELETE_CONFIRM: 'Esta acción no se puede deshacer.',
   LOGOUT_CONFIRM: '¿Estás seguro de que deseas cerrar sesión?',
-  
-  // Success messages
+
+  // Error messages
+  NETWORK_ERROR: 'Error de conexión. Verifica tu conexión a internet.',
+  SERVER_ERROR: 'Error del servidor. Inténtalo de nuevo más tarde.',
+  UNAUTHORIZED_ERROR: 'Sesión expirada. Por favor, inicia sesión nuevamente.',
+  FORBIDDEN_ERROR: 'No tienes permisos para realizar esta acción.',
+  NOT_FOUND_ERROR: 'El recurso solicitado no fue encontrado.',
+
+  // Snackbar messages
   TASK_CREATED: 'Tarea creada exitosamente',
   TASK_UPDATED: 'Tarea actualizada exitosamente',
   TASK_DELETED: 'Tarea eliminada exitosamente',
-  LOGIN_SUCCESS: 'Sesión iniciada exitosamente',
-  REGISTER_SUCCESS: 'Registro exitoso',
-  
-  // Error messages
-  LOGIN_ERROR: 'Error al iniciar sesión',
-  REGISTER_ERROR: 'Error al registrar usuario',
-  TASK_CREATE_ERROR: 'Error al crear tarea',
-  TASK_UPDATE_ERROR: 'Error al actualizar tarea',
-  TASK_DELETE_ERROR: 'Error al eliminar tarea',
-  NETWORK_ERROR: 'Error de conexión',
-  UNAUTHORIZED_ERROR: 'No autorizado',
-  SERVER_ERROR: 'Error del servidor',
-  
-  // Responsive
-  MENU: 'Menú',
-  CLOSE_MENU: 'Cerrar menú',
-  
-  // Pagination
-  ITEMS_PER_PAGE: 'Elementos por página',
-  SHOWING_RESULTS: 'Mostrando {0} de {1} resultados',
-  PAGE: 'Página',
-  OF: 'de',
-  
-  // Time
+  TASK_COMPLETED: 'Tarea marcada como completada',
+  PROFILE_UPDATED: 'Perfil actualizado exitosamente',
+  PASSWORD_CHANGED: 'Contraseña cambiada exitosamente',
+  SETTINGS_SAVED: 'Configuración guardada exitosamente',
+
+  // Loading states
+  CREATING_TASK: 'Creando tarea...',
+  UPDATING_TASK: 'Actualizando tarea...',
+  DELETING_TASK: 'Eliminando tarea...',
+  LOADING_TASK: 'Cargando tarea...',
+  LOADING_TASKS: 'Cargando tareas...',
+  SAVING_PROFILE: 'Guardando perfil...',
+  CHANGING_PASSWORD: 'Cambiando contraseña...',
+  SAVING_SETTINGS: 'Guardando configuración...',
+
+  // Time and date formats
   TODAY: 'Hoy',
   YESTERDAY: 'Ayer',
   TOMORROW: 'Mañana',
   THIS_WEEK: 'Esta semana',
-  THIS_MONTH: 'Este mes',
   LAST_WEEK: 'Semana pasada',
+  NEXT_WEEK: 'Próxima semana',
+  THIS_MONTH: 'Este mes',
   LAST_MONTH: 'Mes pasado',
-  
-  // Empty states
-  NO_TASKS_TITLE: 'No tienes tareas',
-  NO_TASKS_SUBTITLE: 'Comienza creando tu primera tarea',
-  CREATE_FIRST_TASK: 'Crear primera tarea',
-  
-  // Tooltips
-  ADD_NEW_TASK: 'Agregar nueva tarea',
-  EDIT_TASK_TOOLTIP: 'Editar esta tarea',
-  DELETE_TASK_TOOLTIP: 'Eliminar esta tarea',
-  MARK_COMPLETE: 'Marcar como completada',
-  MARK_PENDING: 'Marcar como pendiente',
-  VIEW_DETAILS: 'Ver detalles',
-} as const;
+  NEXT_MONTH: 'Próximo mes',
 
-export type UILabel = typeof UI_LABELS[keyof typeof UI_LABELS];
+  // Task specific
+  TASK_OVERDUE: 'Tarea vencida',
+  TASK_DUE_TODAY: 'Vence hoy',
+  TASK_DUE_TOMORROW: 'Vence mañana',
+  TASK_DUE_SOON: 'Vence pronto',
+  DAYS_REMAINING: 'días restantes',
+  DAYS_OVERDUE: 'días de retraso',
+
+  // Status updates
+  TASK_STARTED: 'Tarea iniciada',
+  TASK_PAUSED: 'Tarea pausada',
+  TASK_RESUMED: 'Tarea reanudada',
+  TASK_ARCHIVED: 'Tarea archivada',
+  TASK_RESTORED: 'Tarea restaurada',
+
+  // Bulk actions
+  SELECT_ALL: 'Seleccionar todo',
+  DESELECT_ALL: 'Deseleccionar todo',
+  SELECTED_ITEMS: 'elementos seleccionados',
+  BULK_DELETE: 'Eliminar seleccionados',
+  BULK_COMPLETE: 'Completar seleccionados',
+  BULK_ARCHIVE: 'Archivar seleccionados',
+
+  // Export and import
+  EXPORT_TASKS: 'Exportar tareas',
+  IMPORT_TASKS: 'Importar tareas',
+  EXPORT_SUCCESS: 'Datos exportados exitosamente',
+  IMPORT_SUCCESS: 'Datos importados exitosamente',
+  EXPORT_ERROR: 'Error al exportar datos',
+  IMPORT_ERROR: 'Error al importar datos',
+
+  // Settings specific
+  GENERAL_SETTINGS: 'Configuración General',
+  NOTIFICATION_SETTINGS: 'Configuración de Notificaciones',
+  PRIVACY_SETTINGS: 'Configuración de Privacidad',
+  DATA_MANAGEMENT: 'Gestión de Datos',
+  THEME_LIGHT: 'Tema Claro',
+  THEME_DARK: 'Tema Oscuro',
+  THEME_AUTO: 'Automático',
+  LANGUAGE_SPANISH: 'Español',
+  LANGUAGE_ENGLISH: 'Inglés',
+
+  // Advanced features
+  KEYBOARD_SHORTCUTS: 'Atajos de teclado',
+  HELP_CENTER: 'Centro de ayuda',
+  CONTACT_SUPPORT: 'Contactar soporte',
+  FEATURE_REQUEST: 'Solicitar función',
+  BUG_REPORT: 'Reportar error',
+  FEEDBACK: 'Enviar comentarios',
+
+  // User guidance
+  WELCOME_MESSAGE: '¡Bienvenido al Sistema de Gestión de Tareas!',
+  GETTING_STARTED: 'Empezando',
+  QUICK_TOUR: 'Tour rápido',
+  TUTORIAL: 'Tutorial',
+  TIPS_AND_TRICKS: 'Tips y trucos',
+  WHATS_NEW: 'Novedades',
+
+  // Empty states
+  NO_TASKS_YET: 'Aún no tienes tareas',
+  CREATE_FIRST_TASK: 'Crea tu primera tarea',
+  NO_COMPLETED_TASKS: 'No hay tareas completadas',
+  NO_PENDING_TASKS: 'No hay tareas pendientes',
+  NO_OVERDUE_TASKS: 'No hay tareas vencidas',
+
+  // Accessibility
+  ARIA_CLOSE: 'Cerrar',
+  ARIA_OPEN: 'Abrir',
+  ARIA_MENU: 'Menú',
+  ARIA_NAVIGATION: 'Navegación',
+  ARIA_SEARCH: 'Buscar',
+  ARIA_FILTER: 'Filtrar',
+  ARIA_SORT: 'Ordenar',
+
+  // Footer
+  COPYRIGHT: 'Todos los derechos reservados',
+  VERSION: 'Versión',
+  BUILD: 'Build',
+  LAST_UPDATED: 'Última actualización'
+} as const;

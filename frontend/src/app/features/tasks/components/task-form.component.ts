@@ -1,16 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TaskService } from '../../../core/services/task.service';
 import { UI_LABELS } from '../../../shared/constants/ui-labels.constants';
@@ -25,248 +27,257 @@ import { Task, Priority, Status, CreateTaskRequest, UpdateTaskRequest } from '..
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
+    MatButtonModule,
+    MatIconModule,
     MatSelectModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatToolbarModule
   ],
   template: `
     <div class="container-responsive py-6">
+      
       <!-- Header -->
-      <div class="mb-6">
-        <div class="flex items-center space-x-4 mb-4">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center space-x-4">
           <button 
             mat-icon-button 
             (click)="goBack()"
-            class="bg-gray-100 hover:bg-gray-200">
+            class="text-gray-600 hover:text-gray-800">
             <mat-icon>arrow_back</mat-icon>
           </button>
           <div>
-            <h1 class="text-3xl font-bold text-gray-900">
-              {{isEditMode ? labels.EDIT_TASK : labels.NEW_TASK}}
+            <h1 class="text-2xl font-bold text-gray-900">
+              {{ isEditMode ? labels.EDIT_TASK : labels.NEW_TASK }}
             </h1>
             <p class="text-gray-600 mt-1">
-              {{isEditMode ? 'Modifica los detalles de la tarea' : 'Crea una nueva tarea para tu lista'}}
+              {{ isEditMode ? 'Modifica los datos de tu tarea' : 'Crea una nueva tarea para gestionar' }}
             </p>
           </div>
+        </div>
+        
+        <div class="flex items-center space-x-2">
+          <mat-icon class="text-primary-500">
+            {{ isEditMode ? 'edit' : 'add_task' }}
+          </mat-icon>
         </div>
       </div>
 
       <!-- Loading State -->
-      <div *ngIf="isLoading" class="flex justify-center items-center py-12">
+      <div *ngIf="isLoading && isEditMode" class="flex justify-center items-center py-12">
         <mat-spinner diameter="40"></mat-spinner>
+        <span class="ml-4 text-gray-600">Cargando tarea...</span>
       </div>
 
       <!-- Task Form -->
-      <div *ngIf="!isLoading" class="max-w-2xl">
-        <mat-card class="p-6">
+      <div *ngIf="!isLoading || !isEditMode">
+        <mat-card class="p-6 shadow-lg">
           <form [formGroup]="taskForm" (ngSubmit)="onSubmit()" class="space-y-6">
             
-            <!-- Title -->
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>{{labels.TASK_TITLE}} *</mat-label>
-              <input 
-                matInput 
-                formControlName="title"
-                [placeholder]="labels.TASK_TITLE"
-                maxlength="255">
-              <mat-hint align="end">{{taskForm.get('title')?.value?.length || 0}}/255</mat-hint>
-              <mat-error *ngIf="taskForm.get('title')?.hasError('required')">
-                {{labels.REQUIRED_FIELD}}
-              </mat-error>
-              <mat-error *ngIf="taskForm.get('title')?.hasError('maxlength')">
-                Máximo 255 caracteres
-              </mat-error>
-            </mat-form-field>
-
-            <!-- Description -->
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>{{labels.TASK_DESCRIPTION}}</mat-label>
-              <textarea 
-                matInput 
-                formControlName="description"
-                [placeholder]="labels.TASK_DESCRIPTION"
-                rows="4"
-                maxlength="1000">
-              </textarea>
-              <mat-hint align="end">{{taskForm.get('description')?.value?.length || 0}}/1000</mat-hint>
-              <mat-error *ngIf="taskForm.get('description')?.hasError('maxlength')">
-                Máximo 1000 caracteres
-              </mat-error>
-            </mat-form-field>
-
-            <!-- Priority and Status Row -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              <!-- Priority -->
-              <mat-form-field appearance="outline">
-                <mat-label>{{labels.PRIORITY}} *</mat-label>
-                <mat-select formControlName="priority">
-                  <mat-option value="LOW">
-                    <div class="flex items-center space-x-2">
-                      <span class="priority-low px-2 py-1 rounded text-xs">{{labels.LOW}}</span>
-                    </div>
-                  </mat-option>
-                  <mat-option value="MEDIUM">
-                    <div class="flex items-center space-x-2">
-                      <span class="priority-medium px-2 py-1 rounded text-xs">{{labels.MEDIUM}}</span>
-                    </div>
-                  </mat-option>
-                  <mat-option value="HIGH">
-                    <div class="flex items-center space-x-2">
-                      <span class="priority-high px-2 py-1 rounded text-xs">{{labels.HIGH}}</span>
-                    </div>
-                  </mat-option>
-                </mat-select>
-                <mat-error *ngIf="taskForm.get('priority')?.hasError('required')">
-                  {{labels.REQUIRED_FIELD}}
-                </mat-error>
-              </mat-form-field>
-
-              <!-- Status -->
-              <mat-form-field appearance="outline">
-                <mat-label>{{labels.STATUS}} *</mat-label>
-                <mat-select formControlName="status">
-                  <mat-option value="PENDING">
-                    <div class="flex items-center space-x-2">
-                      <span class="status-pending px-2 py-1 rounded text-xs">{{labels.PENDING}}</span>
-                    </div>
-                  </mat-option>
-                  <mat-option value="IN_PROGRESS">
-                    <div class="flex items-center space-x-2">
-                      <span class="status-in-progress px-2 py-1 rounded text-xs">{{labels.IN_PROGRESS}}</span>
-                    </div>
-                  </mat-option>
-                  <mat-option value="COMPLETED">
-                    <div class="flex items-center space-x-2">
-                      <span class="status-completed px-2 py-1 rounded text-xs">{{labels.COMPLETED}}</span>
-                    </div>
-                  </mat-option>
-                </mat-select>
-                <mat-error *ngIf="taskForm.get('status')?.hasError('required')">
-                  {{labels.REQUIRED_FIELD}}
-                </mat-error>
-              </mat-form-field>
-            </div>
-
-            <!-- Due Date -->
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>{{labels.DUE_DATE}}</mat-label>
-              <input 
-                matInput 
-                [matDatepicker]="picker" 
-                formControlName="dueDate"
-                [min]="minDate">
-              <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-              <mat-datepicker #picker></mat-datepicker>
-              <mat-hint>Opcional - Selecciona una fecha límite para la tarea</mat-hint>
-              <mat-error *ngIf="taskForm.get('dueDate')?.hasError('matDatepickerMin')">
-                La fecha no puede ser anterior a hoy
-              </mat-error>
-            </mat-form-field>
-
             <!-- Error Message -->
-            <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 rounded-md p-3">
-              <div class="flex">
-                <mat-icon class="text-red-400 mr-2">error</mat-icon>
-                <div class="text-sm text-red-700">{{errorMessage}}</div>
+            <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div class="flex items-start">
+                <mat-icon class="text-red-500 mt-0.5 mr-2">error_outline</mat-icon>
+                <div>
+                  <h3 class="text-red-800 font-medium">Error al guardar</h3>
+                  <p class="text-red-700 text-sm mt-1">{{errorMessage}}</p>
+                </div>
               </div>
             </div>
 
-            <!-- Form Actions -->
-            <div class="flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-200">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              <!-- Left Column -->
+              <div class="space-y-6">
+                
+                <!-- Title -->
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>{{labels.TASK_TITLE}}</mat-label>
+                  <input 
+                    matInput 
+                    formControlName="title"
+                    placeholder="Ej: Completar reporte mensual"
+                    maxlength="100">
+                  <mat-icon matSuffix>title</mat-icon>
+                  <mat-hint align="end">{{taskForm.get('title')?.value?.length || 0}}/100</mat-hint>
+                  <mat-error *ngIf="taskForm.get('title')?.hasError('required')">
+                    {{labels.REQUIRED_FIELD}}
+                  </mat-error>
+                  <mat-error *ngIf="taskForm.get('title')?.hasError('minlength')">
+                    Mínimo 3 caracteres
+                  </mat-error>
+                  <mat-error *ngIf="taskForm.get('title')?.hasError('maxlength')">
+                    Máximo 100 caracteres
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Description -->
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>{{labels.TASK_DESCRIPTION}}</mat-label>
+                  <textarea 
+                    matInput 
+                    formControlName="description"
+                    placeholder="Describe los detalles y objetivos de la tarea..."
+                    rows="4"
+                    maxlength="500"></textarea>
+                  <mat-icon matSuffix>description</mat-icon>
+                  <mat-hint align="end">{{taskForm.get('description')?.value?.length || 0}}/500</mat-hint>
+                </mat-form-field>
+
+              </div>
+
+              <!-- Right Column -->
+              <div class="space-y-6">
+                
+                <!-- Priority -->
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>{{labels.PRIORITY}}</mat-label>
+                  <mat-select formControlName="priority">
+                    <mat-option [value]="Priority.LOW">
+                      <div class="flex items-center">
+                        <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                        {{labels.LOW}}
+                      </div>
+                    </mat-option>
+                    <mat-option [value]="Priority.MEDIUM">
+                      <div class="flex items-center">
+                        <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                        {{labels.MEDIUM}}
+                      </div>
+                    </mat-option>
+                    <mat-option [value]="Priority.HIGH">
+                      <div class="flex items-center">
+                        <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                        {{labels.HIGH}}
+                      </div>
+                    </mat-option>
+                  </mat-select>
+                  <mat-icon matSuffix>flag</mat-icon>
+                  <mat-error *ngIf="taskForm.get('priority')?.hasError('required')">
+                    {{labels.REQUIRED_FIELD}}
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Status -->
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>{{labels.STATUS}}</mat-label>
+                  <mat-select formControlName="status">
+                    <mat-option [value]="Status.PENDING">
+                      <div class="flex items-center">
+                        <mat-icon class="text-orange-500 mr-2 text-lg">schedule</mat-icon>
+                        {{labels.PENDING}}
+                      </div>
+                    </mat-option>
+                    <mat-option [value]="Status.IN_PROGRESS">
+                      <div class="flex items-center">
+                        <mat-icon class="text-blue-500 mr-2 text-lg">play_circle</mat-icon>
+                        {{labels.IN_PROGRESS}}
+                      </div>
+                    </mat-option>
+                    <mat-option [value]="Status.COMPLETED">
+                      <div class="flex items-center">
+                        <mat-icon class="text-green-500 mr-2 text-lg">check_circle</mat-icon>
+                        {{labels.COMPLETED}}
+                      </div>
+                    </mat-option>
+                  </mat-select>
+                  <mat-icon matSuffix>update</mat-icon>
+                  <mat-error *ngIf="taskForm.get('status')?.hasError('required')">
+                    {{labels.REQUIRED_FIELD}}
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Due Date -->
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>{{labels.DUE_DATE}}</mat-label>
+                  <input 
+                    matInput 
+                    [matDatepicker]="picker"
+                    formControlName="dueDate"
+                    placeholder="Selecciona fecha límite">
+                  <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                  <mat-datepicker #picker></mat-datepicker>
+                  <mat-hint>Opcional - Fecha límite para completar</mat-hint>
+                  <mat-error *ngIf="taskForm.get('dueDate')?.hasError('matDatepickerParse')">
+                    {{labels.INVALID_DATE}}
+                  </mat-error>
+                </mat-form-field>
+
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
+              
+              <!-- Cancel Button -->
               <button 
-                type="button"
                 mat-stroked-button 
+                type="button"
                 (click)="goBack()"
-                [disabled]="isSubmitting"
-                class="w-full sm:w-auto">
+                class="sm:w-auto w-full">
+                <mat-icon class="mr-2">close</mat-icon>
                 {{labels.CANCEL}}
               </button>
-              
+
+              <!-- Save Button -->
               <button 
-                type="submit"
                 mat-raised-button 
                 color="primary"
-                [disabled]="taskForm.invalid || isSubmitting"
-                class="w-full sm:w-auto">
-                <div class="flex items-center justify-center space-x-2">
-                  <mat-spinner *ngIf="isSubmitting" diameter="20" class="mr-2"></mat-spinner>
-                  <span>
-                    {{isSubmitting ? labels.LOADING : (isEditMode ? labels.UPDATE : labels.CREATE)}}
-                  </span>
-                </div>
+                type="submit"
+                class="sm:w-auto w-full"
+                [disabled]="taskForm.invalid || isSaving">
+                
+                <mat-spinner diameter="16" class="mr-2" *ngIf="isSaving"></mat-spinner>
+                <mat-icon class="mr-2" *ngIf="!isSaving">{{isEditMode ? 'save' : 'add'}}</mat-icon>
+                {{isSaving ? 'Guardando...' : (isEditMode ? labels.UPDATE : labels.CREATE)}}
               </button>
             </div>
-          </form>
-        </mat-card>
 
-        <!-- Help Card -->
-        <mat-card class="mt-6 p-4 bg-blue-50">
-          <div class="flex items-start space-x-3">
-            <mat-icon class="text-blue-600 mt-1">info</mat-icon>
-            <div>
-              <h3 class="font-semibold text-blue-900 mb-2">Consejos para crear tareas efectivas</h3>
-              <ul class="text-sm text-blue-800 space-y-1">
-                <li>• Usa títulos claros y descriptivos</li>
-                <li>• Establece prioridades según la importancia</li>
-                <li>• Incluye fechas límite para tareas urgentes</li>
-                <li>• Añade descripciones detalladas para tareas complejas</li>
-              </ul>
-            </div>
-          </div>
+          </form>
         </mat-card>
       </div>
     </div>
   `,
   styles: [`
-    .mat-mdc-card {
-      border-radius: 12px;
+    .container-responsive {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
     }
 
     .mat-mdc-form-field {
       margin-bottom: 0;
     }
 
-    .mat-mdc-raised-button,
-    .mat-mdc-stroked-button {
-      border-radius: 8px;
-    }
-
-    .priority-low,
-    .priority-medium,
-    .priority-high,
-    .status-pending,
-    .status-in-progress,
-    .status-completed {
-      font-size: 0.75rem;
-      font-weight: 500;
+    .mat-mdc-card {
       border-radius: 12px;
     }
 
-    textarea.mat-mdc-input-element {
-      resize: vertical;
-      min-height: 100px;
+    .text-primary-500 {
+      color: #2196F3;
     }
 
-    /* Loading state animation */
-    .mat-progress-spinner {
-      display: inline-block;
+    @media (max-width: 640px) {
+      .container-responsive {
+        padding: 0 0.75rem;
+      }
     }
   `]
 })
-export class TaskFormComponent implements OnInit {
+export class TaskFormComponent implements OnInit, OnDestroy {
   labels = UI_LABELS;
+  Priority = Priority;
+  Status = Status;
   
   taskForm: FormGroup;
   isEditMode = false;
   isLoading = false;
-  isSubmitting = false;
+  isSaving = false;
   errorMessage = '';
-  taskId: number | null = null;
-  minDate = new Date(); // Minimum date is today
+  taskId?: number;
+  
+  private destroy$ = new Subject<void>();
 
   constructor(
     private fb: FormBuilder,
@@ -279,44 +290,52 @@ export class TaskFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.checkRouteMode();
+    // Check if we're in edit mode
+    this.taskId = Number(this.route.snapshot.paramMap.get('id'));
+    this.isEditMode = !!this.taskId && !isNaN(this.taskId);
+
+    if (this.isEditMode) {
+      this.loadTask();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private createForm(): FormGroup {
     return this.fb.group({
-      title: ['', [Validators.required, Validators.maxLength(255)]],
-      description: ['', [Validators.maxLength(1000)]],
-      priority: ['MEDIUM', [Validators.required]],
-      status: ['PENDING', [Validators.required]],
-      dueDate: ['']
+      title: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
+      description: ['', [Validators.maxLength(500)]],
+      priority: [Priority.MEDIUM, [Validators.required]],
+      status: [Status.PENDING, [Validators.required]],
+      dueDate: [null] // Optional
     });
-  }
-
-  private checkRouteMode(): void {
-    const id = this.route.snapshot.paramMap.get('id');
-    
-    if (id) {
-      this.isEditMode = true;
-      this.taskId = parseInt(id, 10);
-      this.loadTask();
-    }
   }
 
   private loadTask(): void {
     if (!this.taskId) return;
 
     this.isLoading = true;
-    this.taskService.getTask(this.taskId).subscribe({
-      next: (task) => {
-        this.populateForm(task);
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Error loading task:', error);
-        this.errorMessage = 'Error al cargar la tarea';
-        this.isLoading = false;
-      }
-    });
+    this.taskService.getTask(this.taskId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (task) => {
+          this.isLoading = false;
+          this.populateForm(task);
+        },
+        error: (error) => {
+          this.isLoading = false;
+          this.errorMessage = 'Error al cargar la tarea';
+          console.error('Load task error:', error);
+          
+          this.snackBar.open('Error al cargar la tarea', 'Cerrar', {
+            duration: 4000,
+            panelClass: ['error-snackbar']
+          });
+        }
+      });
   }
 
   private populateForm(task: Task): void {
@@ -325,19 +344,72 @@ export class TaskFormComponent implements OnInit {
       description: task.description || '',
       priority: task.priority,
       status: task.status,
-      dueDate: task.dueDate || ''
+      dueDate: task.dueDate || null
     });
   }
 
   onSubmit(): void {
     if (this.taskForm.valid) {
-      this.isSubmitting = true;
+      this.isSaving = true;
       this.errorMessage = '';
 
-      if (this.isEditMode) {
-        this.updateTask();
+      const formValue = this.taskForm.value;
+      
+      if (this.isEditMode && this.taskId) {
+        // Update existing task
+        const updateRequest: UpdateTaskRequest = {
+          id: this.taskId,
+          title: formValue.title,
+          description: formValue.description || undefined,
+          priority: formValue.priority,
+          status: formValue.status,
+          dueDate: formValue.dueDate || undefined
+        };
+
+        this.taskService.updateTask(updateRequest)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (task) => {
+              this.isSaving = false;
+              this.snackBar.open('Tarea actualizada exitosamente', 'Cerrar', {
+                duration: 3000,
+                panelClass: ['success-snackbar']
+              });
+              this.router.navigate(['/tasks', task.id]);
+            },
+            error: (error) => {
+              this.isSaving = false;
+              this.errorMessage = error.message || 'Error al actualizar la tarea';
+              console.error('Update task error:', error);
+            }
+          });
       } else {
-        this.createTask();
+        // Create new task
+        const createRequest: CreateTaskRequest = {
+          title: formValue.title,
+          description: formValue.description || undefined,
+          priority: formValue.priority,
+          status: formValue.status,
+          dueDate: formValue.dueDate || undefined
+        };
+
+        this.taskService.createTask(createRequest)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (task) => {
+              this.isSaving = false;
+              this.snackBar.open('Tarea creada exitosamente', 'Cerrar', {
+                duration: 3000,
+                panelClass: ['success-snackbar']
+              });
+              this.router.navigate(['/tasks', task.id]);
+            },
+            error: (error) => {
+              this.isSaving = false;
+              this.errorMessage = error.message || 'Error al crear la tarea';
+              console.error('Create task error:', error);
+            }
+          });
       }
     } else {
       // Mark all fields as touched to show validation errors
@@ -345,80 +417,7 @@ export class TaskFormComponent implements OnInit {
     }
   }
 
-  private createTask(): void {
-    const formValue = this.taskForm.value;
-    
-    const createRequest: CreateTaskRequest = {
-      title: formValue.title.trim(),
-      description: formValue.description?.trim() || undefined,
-      priority: formValue.priority as Priority,
-      status: formValue.status as Status,
-      dueDate: formValue.dueDate || undefined
-    };
-
-    this.taskService.createTask(createRequest).subscribe({
-      next: (task) => {
-        this.isSubmitting = false;
-        this.snackBar.open(this.labels.TASK_CREATED, 'Cerrar', {
-          duration: 3000,
-          panelClass: ['success-snackbar']
-        });
-        this.router.navigate(['/tasks', task.id]);
-      },
-      error: (error) => {
-        this.isSubmitting = false;
-        this.errorMessage = error.message || this.labels.TASK_CREATE_ERROR;
-        console.error('Create task error:', error);
-      }
-    });
-  }
-
-  private updateTask(): void {
-    if (!this.taskId) return;
-
-    const formValue = this.taskForm.value;
-    
-    const updateRequest: UpdateTaskRequest = {
-      id: this.taskId,
-      title: formValue.title.trim(),
-      description: formValue.description?.trim() || undefined,
-      priority: formValue.priority as Priority,
-      status: formValue.status as Status,
-      dueDate: formValue.dueDate || undefined
-    };
-
-    this.taskService.updateTask(updateRequest).subscribe({
-      next: (task) => {
-        this.isSubmitting = false;
-        this.snackBar.open(this.labels.TASK_UPDATED, 'Cerrar', {
-          duration: 3000,
-          panelClass: ['success-snackbar']
-        });
-        this.router.navigate(['/tasks', task.id]);
-      },
-      error: (error) => {
-        this.isSubmitting = false;
-        this.errorMessage = error.message || this.labels.TASK_UPDATE_ERROR;
-        console.error('Update task error:', error);
-      }
-    });
-  }
-
   goBack(): void {
-    if (this.taskForm.dirty) {
-      if (confirm('¿Estás seguro de que deseas salir? Se perderán los cambios no guardados.')) {
-        this.navigateBack();
-      }
-    } else {
-      this.navigateBack();
-    }
-  }
-
-  private navigateBack(): void {
-    if (this.isEditMode && this.taskId) {
-      this.router.navigate(['/tasks', this.taskId]);
-    } else {
-      this.router.navigate(['/tasks']);
-    }
+    this.router.navigate(['/tasks']);
   }
 }
