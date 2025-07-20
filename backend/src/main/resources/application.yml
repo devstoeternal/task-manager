@@ -1,44 +1,90 @@
-server:
-  port: 8080
-  servlet:
-    context-path: /
+# 🚀 TCC Task Manager Backend Configuration
+# Configuración completa según requisitos de prueba técnica
 
 spring:
   application:
-    name: task-manager
+    name: task-manager-backend
   
+  # 🗄️ SQL SERVER DATABASE - REQUERIDO para Java según TCC
   datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
+    url: jdbc:sqlserver://localhost:1433;databaseName=TaskManagerDB;trustServerCertificate=true;encrypt=false
     username: sa
-    password: password
-  
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-  
+    password: admin123
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    
+  # JPA/Hibernate Configuration
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
     show-sql: true
     properties:
       hibernate:
+        dialect: org.hibernate.dialect.SQLServerDialect
         format_sql: true
-  
-  security:
-    jwt:
-      secret: mySecretKey
-      expiration: 86400000 # 24 hours
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
 
-app:
-  jwtSecret: mySecretKey
-  jwtExpirationMs: 86400000
+# 🔐 JWT SECURITY CONFIGURATION
+security:
+  jwt:
+    secret: VENDMjAyNUpSRGV2ZWxvcGVyQXNzZXNzbWVudFRhc2tNYW5hZ2VyU2VjdXJlSldUQmFja2VuZEFQSTIwMjU=
+    expiration: 86400000 # 24 hours
+    refresh-expiration: 604800000 # 7 days
 
+# 🌐 SERVER CONFIGURATION
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# 📖 SPRINGDOC OPENAPI 3 - REQUERIDO POR TCC
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    display-request-duration: true
+    groups-order: desc
+    operationsSorter: method
+    disable-swagger-default-url: true
+  packages-to-scan: com.tcc.taskmanager.controller
+
+# 📊 LOGGING CONFIGURATION
 logging:
   level:
     com.tcc.taskmanager: DEBUG
     org.springframework.security: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.web: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# 🔧 MANAGEMENT AND MONITORING
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# 📋 APPLICATION INFO
+info:
+  app:
+    name: Task Manager Backend
+    description: Sistema de Gestión de Tareas Empresarial - TCC
+    version: 1.0.0
+    author: JR Developer Assessment
+    company: TCC - Tecnología, Consultoría y Capacitación
