@@ -12,7 +12,11 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.util.Date;
 
-
+/**
+ * 🔐 JWT UTILITIES CLASS
+ * Handles JWT token generation, validation and extraction
+ * ✅ Compatible with JWT 0.9.x, 0.10.x, 0.11.x and Spring Boot 3.x
+ */
 @Component
 public class JwtUtils {
 
@@ -28,7 +32,7 @@ public class JwtUtils {
     private int refreshExpirationMs;
 
     /**
-     * 🔐 Generate JWT Access Token
+     * 🔐 Generate JWT Access Token from Authentication
      */
     public String generateJwtToken(Authentication authentication) {
         UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
@@ -67,9 +71,8 @@ public class JwtUtils {
      * 👤 Extract username from JWT token
      */
     public String getUserNameFromJwtToken(String token) {
-        return Jwts.parserBuilder()
+        return Jwts.parser()
                 .setSigningKey(getSigningKey())
-                .build()
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
@@ -79,9 +82,8 @@ public class JwtUtils {
      * ⏰ Get token expiration date
      */
     public Date getExpirationDateFromToken(String token) {
-        return Jwts.parserBuilder()
+        return Jwts.parser()
                 .setSigningKey(getSigningKey())
-                .build()
                 .parseClaimsJws(token)
                 .getBody()
                 .getExpiration();
@@ -92,9 +94,8 @@ public class JwtUtils {
      */
     public boolean validateJwtToken(String authToken) {
         try {
-            Jwts.parserBuilder()
+            Jwts.parser()
                 .setSigningKey(getSigningKey())
-                .build()
                 .parseClaimsJws(authToken);
             return true;
         } catch (MalformedJwtException e) {
@@ -132,6 +133,7 @@ public class JwtUtils {
             Date expiration = getExpirationDateFromToken(token);
             return expiration.getTime() - System.currentTimeMillis();
         } catch (Exception e) {
+            logger.error("Error getting remaining validity time: {}", e.getMessage());
             return 0;
         }
     }
@@ -148,9 +150,8 @@ public class JwtUtils {
      * 📊 Extract all claims from token
      */
     public Claims getAllClaimsFromToken(String token) {
-        return Jwts.parserBuilder()
+        return Jwts.parser()
                 .setSigningKey(getSigningKey())
-                .build()
                 .parseClaimsJws(token)
                 .getBody();
     }
@@ -172,6 +173,131 @@ public class JwtUtils {
         }
         
         return builder.signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .compact();
+    }
+
+    /**
+     * 🔍 Extract specific claim from token
+     */
+    public <T> T getClaimFromToken(String token, String claimName, Class<T> requiredType) {
+        try {
+            final Claims claims = getAllClaimsFromToken(token);
+            return claims.get(claimName, requiredType);
+        } catch (Exception e) {
+            logger.error("Error extracting claim '{}' from token: {}", claimName, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 🏷️ Generate token with user role
+     */
+    public String generateTokenWithRole(String username, String role) {
+        Date expiryDate = new Date(System.currentTimeMillis() + jwtExpirationMs);
+        
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("role", role)
+                .setIssuedAt(new Date())
+                .setExpiration(expiryDate)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .compact();
+    }
+
+    /**
+     * 🏷️ Extract role from token
+     */
+    public String getRoleFromToken(String token) {
+        try {
+            Claims claims = getAllClaimsFromToken(token);
+            return claims.get("role", String.class);
+        } catch (Exception e) {
+            logger.error("Error extracting role from token: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 🆔 Generate token with user ID
+     */
+    public String generateTokenWithUserId(String username, Long userId) {
+        Date expiryDate = new Date(System.currentTimeMillis() + jwtExpirationMs);
+        
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("userId", userId)
+                .setIssuedAt(new Date())
+                .setExpiration(expiryDate)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .compact();
+    }
+
+    /**
+     * 🆔 Extract user ID from token
+     */
+    public Long getUserIdFromToken(String token) {
+        try {
+            Claims claims = getAllClaimsFromToken(token);
+            return claims.get("userId", Long.class);
+        } catch (Exception e) {
+            logger.error("Error extracting user ID from token: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 🔍 Check if token can be refreshed
+     */
+    public boolean canTokenBeRefreshed(String token) {
+        return !isTokenExpired(token);
+    }
+
+    /**
+     * 📋 Generate token with multiple claims
+     */
+    public String generateTokenWithUserData(String username, String role, Long userId, String email) {
+        Date expiryDate = new Date(System.currentTimeMillis() + jwtExpirationMs);
+        
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("role", role)
+                .claim("userId", userId)
+                .claim("email", email)
+                .setIssuedAt(new Date())
+                .setExpiration(expiryDate)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .compact();
+    }
+
+    /**
+     * 📧 Extract email from token
+     */
+    public String getEmailFromToken(String token) {
+        try {
+            Claims claims = getAllClaimsFromToken(token);
+            return claims.get("email", String.class);
+        } catch (Exception e) {
+            logger.error("Error extracting email from token: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 🔒 Generate secure token with all user data
+     */
+    public String generateCompleteUserToken(Authentication authentication, Long userId, String role, String email) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        Date expiryDate = new Date(System.currentTimeMillis() + jwtExpirationMs);
+        
+        return Jwts.builder()
+                .setSubject(userDetails.getUsername())
+                .claim("userId", userId)
+                .claim("role", role)
+                .claim("email", email)
+                .claim("authorities", userDetails.getAuthorities())
+                .setIssuedAt(new Date())
+                .setExpiration(expiryDate)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
                 .compact();
     }
 }
