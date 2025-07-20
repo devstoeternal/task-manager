@@ -11,31 +11,31 @@ import org.springframework.web.bind.annotation.*;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 public class AuthController {
 
     @Autowired
     private AuthService authService;
 
-    @PostMapping("/signin")
+    @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequestDto loginRequest) {
         try {
             JwtResponseDto response = authService.authenticateUser(loginRequest);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                .body("Error: " + e.getMessage());
+                    .body("Error: " + e.getMessage());
         }
     }
 
-    @PostMapping("/signup")
+    @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequestDto signUpRequest) {
         try {
             String message = authService.registerUser(signUpRequest);
             return ResponseEntity.ok(message);
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                .body("Error: " + e.getMessage());
+                    .body("Error: " + e.getMessage());
         }
     }
 }

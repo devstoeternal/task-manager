@@ -14,6 +14,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class AuthService {
 
@@ -29,20 +31,55 @@ public class AuthService {
     @Autowired
     private JwtUtils jwtUtils;
 
+    /**
+     * 🔐 AUTHENTICATE USER - Supports both email and username
+     */
     public JwtResponseDto authenticateUser(LoginRequestDto loginRequest) {
+        // 1. Find user by email or username
+        User user = findUserByEmailOrUsername(loginRequest.getEmailOrUsername());
+        
+        if (user == null) {
+            throw new RuntimeException("User not found with email/username: " + loginRequest.getEmailOrUsername());
+        }
+
+        // 2. Authenticate using the user's username (Spring Security needs consistent principal)
         Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
+            new UsernamePasswordAuthenticationToken(user.getUsername(), loginRequest.getPassword())
         );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
 
-        User user = userRepository.findByUsername(loginRequest.getUsername())
-            .orElseThrow(() -> new RuntimeException("User not found"));
-
         return new JwtResponseDto(jwt, user.getUsername(), user.getEmail(), user.getRole().name());
     }
 
+    /**
+     * 🔍 FIND USER BY EMAIL OR USERNAME
+     * Busca usuario por email o username de forma flexible
+     */
+    private User findUserByEmailOrUsername(String emailOrUsername) {
+        // Determinar si es email o username
+        if (isEmailFormat(emailOrUsername)) {
+            // Buscar por email
+            Optional<User> userByEmail = userRepository.findByEmail(emailOrUsername);
+            return userByEmail.orElse(null);
+        } else {
+            // Buscar por username
+            Optional<User> userByUsername = userRepository.findByUsername(emailOrUsername);
+            return userByUsername.orElse(null);
+        }
+    }
+
+    /**
+     * 🔍 CHECK IF INPUT IS EMAIL FORMAT
+     */
+    private boolean isEmailFormat(String input) {
+        return input != null && input.contains("@") && input.contains(".");
+    }
+
+    /**
+     * 📝 REGISTER USER
+     */
     public String registerUser(RegisterRequestDto signUpRequest) {
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
             throw new RuntimeException("Error: Username is already taken!");

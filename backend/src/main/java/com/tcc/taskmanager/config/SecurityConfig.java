@@ -21,7 +21,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -56,38 +55,35 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF for stateless API
-            .csrf(csrf -> csrf.disable())
-            
-            // CORS configuration
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            
-            // Session management - STATELESS for JWT
-            .sessionManagement(session -> 
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            
-            // Exception handling
-            .exceptionHandling(exception -> 
-                exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
-            
-            // Authorization rules
-            .authorizeHttpRequests(auth -> auth
-                // 🔓 PUBLIC ENDPOINTS
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api-docs/**").permitAll()
-                .requestMatchers("/swagger-ui/**").permitAll()
-                .requestMatchers("/swagger-ui.html").permitAll()
-                .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers("/h2-console/**").permitAll() // For testing
-                
-                // 🔒 PROTECTED ENDPOINTS
-                .requestMatchers("/api/tasks/**").authenticated()
-                .requestMatchers("/api/users/**").authenticated()
-                .requestMatchers("/api/dashboard/**").authenticated()
-                
-                // All other requests must be authenticated
-                .anyRequest().authenticated()
-            );
+                // Disable CSRF for stateless API
+                .csrf(csrf -> csrf.disable())
+
+                // CORS configuration
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // Session management - STATELESS for JWT
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // Exception handling
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+
+                // Authorization rules
+                .authorizeHttpRequests(auth -> auth
+                        // 🔓 PUBLIC ENDPOINTS
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/api-docs/**").permitAll()
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/swagger-ui.html").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/h2-console/**").permitAll() // For testing
+
+                        // 🔒 PROTECTED ENDPOINTS
+                        .requestMatchers("/api/tasks/**").authenticated()
+                        .requestMatchers("/api/users/**").authenticated()
+                        .requestMatchers("/api/dashboard/**").authenticated()
+
+                        // All other requests must be authenticated
+                        .anyRequest().authenticated());
 
         // Add JWT filter before UsernamePasswordAuthenticationFilter
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -102,41 +98,38 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
+
         // Allowed origins (Frontend URLs)
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-        
+
         // Allowed HTTP methods
         configuration.setAllowedMethods(Arrays.asList(
-            "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
-        ));
-        
+                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+
         // Allowed headers
         configuration.setAllowedHeaders(Arrays.asList(
-            "Authorization", 
-            "Content-Type", 
-            "X-Requested-With",
-            "Accept",
-            "Origin",
-            "Access-Control-Request-Method",
-            "Access-Control-Request-Headers"
-        ));
-        
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With",
+                "Accept",
+                "Origin",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers"));
+
         // Expose headers to frontend
         configuration.setExposedHeaders(Arrays.asList(
-            "Authorization",
-            "Content-Disposition"
-        ));
-        
+                "Authorization",
+                "Content-Disposition"));
+
         // Allow credentials
         configuration.setAllowCredentials(true);
-        
+
         // Max age for preflight requests
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-        
+
         return source;
     }
 }
