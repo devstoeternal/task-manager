@@ -2,15 +2,15 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { AppComponent } from './app/app.component';
 import { provideRouter } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
-import { provideHttpClient, withInterceptors, HTTP_INTERCEPTORS } from '@angular/common/http';
-import { importProvidersFrom, inject } from '@angular/core';
+import { provideHttpClient, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { importProvidersFrom } from '@angular/core';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatNativeDateModule } from '@angular/material/core';
 import { AuthInterceptor } from './app/core/interceptors/auth.interceptor';
 import { ErrorInterceptor } from './app/core/interceptors/error.interceptor';
 import { AuthGuard, NoAuthGuard } from './app/core/guards/auth.guard';
 
-// 🔧 RUTAS CORREGIDAS CON GUARDS APLICADOS
+// 🔧 RUTAS CORREGIDAS
 const appRoutes = [
   {
     path: '',
@@ -18,10 +18,9 @@ const appRoutes = [
     pathMatch: 'full' as const
   },
 
-  // 🔓 Rutas públicas (solo accesibles cuando NO estás autenticado)
+  // 🔓 Rutas públicas - USAR NoAuthGuard
   {
     path: 'auth',
-    canActivate: [(route: any, state: any) => inject(AuthGuard).canActivate(route, state)],
     children: [
       {
         path: '',
@@ -39,10 +38,10 @@ const appRoutes = [
     ]
   },
 
-  // 🔒 Rutas protegidas (requieren autenticación)
+  // 🔒 Rutas protegidas - USAR AuthGuard
   {
     path: '',
-    canActivate: [(route: any, state: any) => inject(AuthGuard).canActivate(route, state)],
+    canActivate: [AuthGuard],
     loadComponent: () => import('./app/layouts/main-layout/main-layout.component').then(c => c.MainLayoutComponent),
     children: [
       {
@@ -89,49 +88,29 @@ const appRoutes = [
   }
 ];
 
-// 🔧 INTERCEPTORS CORREGIDOS - Usar las clases reales
-function createAuthInterceptor() {
-  return (req: any, next: any) => {
-    const authInterceptor = inject(AuthInterceptor);
-    return authInterceptor.intercept(req, next);
-  };
-}
-
-function createErrorInterceptor() {
-  return (req: any, next: any) => {
-    const errorInterceptor = inject(ErrorInterceptor);
-    return errorInterceptor.intercept(req, next);
-  };
-}
-
 // 🚀 BOOTSTRAP DE LA APLICACIÓN
 bootstrapApplication(AppComponent, {
   providers: [
-    // Router con rutas protegidas
+    // Router con rutas
     provideRouter(appRoutes),
-
+    
     // Animaciones para Material Design
     provideAnimations(),
-
-    // HTTP Client con interceptors corregidos
-    provideHttpClient(
-      withInterceptors([
-        createAuthInterceptor(),
-        createErrorInterceptor()
-      ])
-    ),
-
+    
+    // HTTP Client SIN interceptors funcionales
+    provideHttpClient(),
+    
     // Material Design modules
     importProvidersFrom(
       MatSnackBarModule,
       MatNativeDateModule
     ),
-
+    
     // Guards como providers
     AuthGuard,
     NoAuthGuard,
-
-    // Interceptors como providers (backup)
+    
+    // 🔧 INTERCEPTORS USANDO HTTP_INTERCEPTORS (método clásico)
     {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,

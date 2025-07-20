@@ -1,16 +1,16 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, throwError, timer } from 'rxjs';
+import { BehaviorSubject, from, Observable, throwError, timer } from 'rxjs';
 import { map, catchError, tap, switchMap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
-import { 
-  LoginRequest, 
-  RegisterRequest, 
-  AuthResponse, 
-  User, 
+import {
+  LoginRequest,
+  RegisterRequest,
+  AuthResponse,
+  User,
   TokenRefreshRequest,
-  ApiResponse 
+  ApiResponse
 } from '../../shared/models/user.interface';
 
 @Injectable({
@@ -45,7 +45,7 @@ export class AuthService {
   private initializeAuth(): void {
     const token = this.getToken();
     const user = this.getCurrentUser();
-    
+
     if (token && user && this.isTokenValid(token)) {
       this.currentUserSubject.next(user);
       this.isAuthenticatedSubject.next(true);
@@ -59,15 +59,34 @@ export class AuthService {
    * 🔐 Login user with email and password
    */
   login(credentials: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<ApiResponse<AuthResponse>>(`${this.API_URL}/login`, credentials)
+    const request = {
+      emailOrUsername: credentials.email,
+      password: credentials.password
+    };
+
+    return this.http.post<any>(`${this.API_URL}/login`, request)
       .pipe(
         map(response => {
-          if (response.success && response.data) {
-            this.setAuthData(response.data);
+          // El backend devuelve directamente JwtResponseDto, no ApiResponse wrapper
+          if (response && response.token) {
+            const authResponse: AuthResponse = {
+              token: response.token,
+              refreshToken: response.token, // Backend actual no tiene refresh token separado
+              user: {
+                id: response.id || 1,
+                email: response.email,
+                firstName: response.username, // Mapear username a firstName temporalmente
+                lastName: '', // Backend actual no devuelve lastName
+                createdAt: new Date()
+              },
+              expiresIn: 86400000 // 24 horas
+            };
+
+            this.setAuthData(authResponse);
             this.scheduleTokenRefresh();
-            return response.data;
+            return authResponse;
           }
-          throw new Error(response.message || 'Login failed');
+          throw new Error('Invalid response format');
         }),
         catchError(error => {
           console.error('Login error:', error);
@@ -75,21 +94,38 @@ export class AuthService {
         })
       );
   }
-
   /**
    * 📝 Register new user
    */
   register(userData: RegisterRequest): Observable<AuthResponse> {
-    return this.http.post<ApiResponse<AuthResponse>>(`${this.API_URL}/register`, userData)
+    const request = {
+      username: userData.firstName.toLowerCase(), // Generar username simple
+      email: userData.email,
+      password: userData.password,
+      firstName: userData.firstName,
+      lastName: userData.lastName
+    };
+
+    return this.http.post<any>(`${this.API_URL}/register`, request)
       .pipe(
         map(response => {
-          if (response.success && response.data) {
-            this.setAuthData(response.data);
-            this.scheduleTokenRefresh();
-            return response.data;
+          // Backend devuelve string de éxito, no AuthResponse
+          if (response && typeof response === 'string') {
+            // Después del registro, hacer login automático
+            return this.login({ email: userData.email, password: userData.password }).toPromise();
           }
-          throw new Error(response.message || 'Registration failed');
+          throw new Error('Registration failed');
         }),
+        switchMap(loginPromise =>
+          loginPromise
+            ? from(loginPromise).pipe(
+                map(res => {
+                  if (!res) throw new Error('Auto-login failed');
+                  return res;
+                })
+              )
+            : throwError(() => new Error('Auto-login failed'))
+        ),
         catchError(error => {
           console.error('Registration error:', error);
           return throwError(() => error);
@@ -107,7 +143,7 @@ export class AuthService {
     }
 
     const request: TokenRefreshRequest = { refreshToken };
-    
+
     return this.http.post<ApiResponse<AuthResponse>>(`${this.API_URL}/refresh`, request)
       .pipe(
         map(response => {
@@ -226,7 +262,7 @@ export class AuthService {
    */
   private scheduleTokenRefresh(): void {
     this.clearRefreshTimer();
-    
+
     const token = this.getToken();
     if (!token) return;
 
@@ -288,7 +324,7 @@ export class AuthService {
    */
   changePassword(oldPassword: string, newPassword: string): Observable<void> {
     const request = { oldPassword, newPassword };
-    
+
     return this.http.post<ApiResponse<void>>(`${this.API_URL}/change-password`, request)
       .pipe(
         map(response => {
