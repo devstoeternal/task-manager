@@ -6,9 +6,9 @@
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 
 /* === TAILWIND CSS === */
-@use 'tailwindcss/base';
-@use 'tailwindcss/components';
-@use 'tailwindcss/utilities';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* === CSS CUSTOM PROPERTIES PARA THEMING === */
 :root {

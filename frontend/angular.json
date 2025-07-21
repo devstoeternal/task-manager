@@ -33,13 +33,9 @@
             "index": "src/index.html",
             "browser": "src/main.ts",
             "outputPath": "dist/demo",
-            "polyfills": [
-              "zone.js"
-            ],
+            "polyfills": ["zone.js"],
             "scripts": [],
-            "styles": [
-              "src/global_styles.css"
-            ],
+            "styles": ["global_styles.css"],
             "tsConfig": "tsconfig.app.json"
           }
         },
