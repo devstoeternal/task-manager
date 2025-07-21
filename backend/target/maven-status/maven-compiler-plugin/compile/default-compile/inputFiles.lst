@@ -14,6 +14,7 @@ D:\User\Documents\projects\prueba\TCC\task-manager\backend\src\main\java\com\tcc
 D:\User\Documents\projects\prueba\TCC\task-manager\backend\src\main\java\com\tcc\taskmanager\model\Role.java
 D:\User\Documents\projects\prueba\TCC\task-manager\backend\src\main\java\com\tcc\taskmanager\controller\UserController.java
 D:\User\Documents\projects\prueba\TCC\task-manager\backend\src\main\java\com\tcc\taskmanager\config\SecurityConfig.java
+D:\User\Documents\projects\prueba\TCC\task-manager\backend\src\main\java\com\tcc\taskmanager\service\JwtService.java
 D:\User\Documents\projects\prueba\TCC\task-manager\backend\src\main\java\com\tcc\taskmanager\TaskManagerApplication.java
 D:\User\Documents\projects\prueba\TCC\task-manager\backend\src\main\java\com\tcc\taskmanager\model\dto\LoginRequestDto.java
 D:\User\Documents\projects\prueba\TCC\task-manager\backend\src\main\java\com\tcc\taskmanager\service\UserService.java
