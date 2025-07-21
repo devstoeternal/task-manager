@@ -15,7 +15,7 @@ public class JwtResponseDto {
         this.token = token;
         this.username = username;
         this.email = email;
-        this.role = role;
+        this.role = "USER";
     }
     
     // Getters and Setters

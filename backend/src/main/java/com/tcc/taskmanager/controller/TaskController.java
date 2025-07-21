@@ -5,7 +5,6 @@ import com.tcc.taskmanager.service.TaskService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +19,6 @@ public class TaskController {
     private TaskService taskService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
     public ResponseEntity<List<TaskDto>> getAllTasks() {
         List<TaskDto> tasks = taskService.getAllTasks();
         return ResponseEntity.ok(tasks);
@@ -34,8 +32,6 @@ public class TaskController {
 
     @GetMapping("/my")
     public ResponseEntity<List<TaskDto>> getMyTasks(Authentication authentication) {
-        // This would require user service to get user by username
-        // For now, returning all tasks for the authenticated user
         List<TaskDto> tasks = taskService.getAllTasks();
         return ResponseEntity.ok(tasks);
     }
@@ -55,7 +51,6 @@ public class TaskController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
     public ResponseEntity<?> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
         return ResponseEntity.ok("Task deleted successfully!");

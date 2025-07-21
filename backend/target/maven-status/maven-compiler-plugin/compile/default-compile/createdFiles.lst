@@ -16,6 +16,7 @@ com\tcc\taskmanager\exception\GlobalExceptionHandler$ErrorResponse.class
 com\tcc\taskmanager\model\TaskStatus.class
 com\tcc\taskmanager\controller\AuthController.class
 com\tcc\taskmanager\controller\TaskController.class
+com\tcc\taskmanager\service\UserDetailsServiceImpl$UserPrincipal.class
 com\tcc\taskmanager\model\dto\RegisterRequestDto.class
 com\tcc\taskmanager\service\UserDetailsServiceImpl.class
 com\tcc\taskmanager\service\TaskService.class

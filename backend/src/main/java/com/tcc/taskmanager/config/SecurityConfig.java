@@ -68,21 +68,16 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
 
                 // Authorization rules
+
                 .authorizeHttpRequests(auth -> auth
-                        // 🔓 PUBLIC ENDPOINTS
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api-docs/**").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll() // For testing
-
-                        // 🔒 PROTECTED ENDPOINTS
-                        .requestMatchers("/api/tasks/**").authenticated()
-                        .requestMatchers("/api/users/**").authenticated()
-                        .requestMatchers("/api/dashboard/**").authenticated()
-
-                        // All other requests must be authenticated
+                        .requestMatchers("/h2-console/**").permitAll()
+                        .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated());
 
         // Add JWT filter before UsernamePasswordAuthenticationFilter
