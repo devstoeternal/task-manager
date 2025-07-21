@@ -1,13 +1,18 @@
 package com.tcc.taskmanager.controller;
 
+import com.tcc.taskmanager.model.User;
 import com.tcc.taskmanager.model.dto.UserProfileDto;
 import com.tcc.taskmanager.model.dto.ChangePasswordDto;
 import com.tcc.taskmanager.service.UserService;
+import com.tcc.taskmanager.service.JwtService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -17,6 +22,9 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private JwtService jwtService;
+
     @GetMapping("/profile")
     public ResponseEntity<UserProfileDto> getProfile(Authentication authentication) {
         UserProfileDto profile = userService.getUserProfile(authentication.getName());
@@ -24,18 +32,35 @@ public class UserController {
     }
 
     @PutMapping("/profile")
-    public ResponseEntity<UserProfileDto> updateProfile(@Valid @RequestBody UserProfileDto profileDto,
-                                                       Authentication authentication) {
-        UserProfileDto updatedProfile = userService.updateProfile(authentication.getName(), profileDto);
-        return ResponseEntity.ok(updatedProfile);
+    public ResponseEntity<?> updateProfile(@Valid @RequestBody UserProfileDto profileDto,
+                                           Authentication authentication) {
+        User updatedUser = userService.updateUserAndReturnEntity(authentication.getName(), profileDto);
+        String newToken = jwtService.generateToken(updatedUser);
+
+        // Construir el DTO manualmente
+        UserProfileDto updatedProfile = new UserProfileDto();
+        updatedProfile.setId(updatedUser.getId());
+        updatedProfile.setUsername(updatedUser.getUsername());
+        updatedProfile.setEmail(updatedUser.getEmail());
+        updatedProfile.setFirstName(updatedUser.getFirstName());
+        updatedProfile.setLastName(updatedUser.getLastName());
+        updatedProfile.setPhone(updatedUser.getPhone());
+        updatedProfile.setFullName(updatedUser.getFirstName() + " " + updatedUser.getLastName());
+        updatedProfile.setCreatedAt(updatedUser.getCreatedAt());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("user", updatedProfile);
+        response.put("token", newToken);
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/change-password")
     public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordDto changePasswordDto,
-                                          Authentication authentication) {
-        userService.changePassword(authentication.getName(), 
-                                 changePasswordDto.getOldPassword(), 
-                                 changePasswordDto.getNewPassword());
+                                            Authentication authentication) {
+        userService.changePassword(authentication.getName(),
+                changePasswordDto.getOldPassword(),
+                changePasswordDto.getNewPassword());
         return ResponseEntity.ok("Contraseña cambiada exitosamente");
     }
 }

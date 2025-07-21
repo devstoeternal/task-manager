@@ -3,6 +3,7 @@ package com.tcc.taskmanager.service;
 import com.tcc.taskmanager.model.User;
 import com.tcc.taskmanager.model.dto.UserProfileDto;
 import com.tcc.taskmanager.repository.UserRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,18 +21,33 @@ public class UserService {
 
     public UserProfileDto getUserProfile(String username) {
         User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
         return convertToProfileDto(user);
     }
 
-    public UserProfileDto updateProfile(String username, UserProfileDto profileDto) {
-        User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    public UserProfileDto updateProfile(String currentUsername, UserProfileDto profileDto) {
+        User user = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        // Validar si el nuevo username ya existe en otro usuario
+        if (!user.getUsername().equals(profileDto.getUsername())) {
+            if (userRepository.existsByUsername(profileDto.getUsername())) {
+                throw new RuntimeException("El nombre de usuario ya está en uso");
+            }
+            user.setUsername(profileDto.getUsername());
+        }
+
+        // Validar si el nuevo email ya existe en otro usuario
+        if (!user.getEmail().equals(profileDto.getEmail())) {
+            if (userRepository.existsByEmail(profileDto.getEmail())) {
+                throw new RuntimeException("El correo electrónico ya está en uso");
+            }
+            user.setEmail(profileDto.getEmail());
+        }
 
         user.setFirstName(profileDto.getFirstName());
         user.setLastName(profileDto.getLastName());
-        user.setEmail(profileDto.getEmail());
         user.setPhone(profileDto.getPhone());
 
         User updatedUser = userRepository.save(user);
@@ -40,7 +56,7 @@ public class UserService {
 
     public void changePassword(String username, String oldPassword, String newPassword) {
         User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
             throw new RuntimeException("Contraseña actual incorrecta");
@@ -48,6 +64,18 @@ public class UserService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+    }
+
+    public User updateUserAndReturnEntity(String username, UserProfileDto profileDto) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        user.setUsername(profileDto.getUsername());
+        user.setFirstName(profileDto.getFirstName());
+        user.setLastName(profileDto.getLastName());
+        user.setPhone(profileDto.getPhone());
+        user = userRepository.save(user);
+        return user;
     }
 
     private UserProfileDto convertToProfileDto(User user) {
