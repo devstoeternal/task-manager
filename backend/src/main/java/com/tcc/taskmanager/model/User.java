@@ -32,16 +32,16 @@ public class User {
     @Column(name = "last_name")
     private String lastName;
     
+    @Column(name = "phone")
+    private String phone;
+    
     @Enumerated(EnumType.STRING)
     private Role role = Role.USER;
     
     private boolean enabled = true;
     
-    @OneToMany(mappedBy = "assignee", fetch = FetchType.LAZY)
-    private List<Task> assignedTasks;
-    
-    @OneToMany(mappedBy = "creator", fetch = FetchType.LAZY)
-    private List<Task> createdTasks;
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Task> tasks;
     
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -51,7 +51,6 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    // Constructors
     public User() {}
     
     public User(String username, String email, String password, String firstName, String lastName) {
@@ -62,7 +61,6 @@ public class User {
         this.lastName = lastName;
     }
     
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     
@@ -81,21 +79,32 @@ public class User {
     public String getLastName() { return lastName; }
     public void setLastName(String lastName) { this.lastName = lastName; }
     
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+    
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
     
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
     
-    public List<Task> getAssignedTasks() { return assignedTasks; }
-    public void setAssignedTasks(List<Task> assignedTasks) { this.assignedTasks = assignedTasks; }
-    
-    public List<Task> getCreatedTasks() { return createdTasks; }
-    public void setCreatedTasks(List<Task> createdTasks) { this.createdTasks = createdTasks; }
+    public List<Task> getTasks() { return tasks; }
+    public void setTasks(List<Task> tasks) { this.tasks = tasks; }
     
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    
+    public String getFullName() {
+        if (firstName != null && lastName != null) {
+            return firstName + " " + lastName;
+        } else if (firstName != null) {
+            return firstName;
+        } else if (lastName != null) {
+            return lastName;
+        }
+        return username;
+    }
 }

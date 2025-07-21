@@ -32,16 +32,8 @@ public class Task {
     private LocalDateTime dueDate;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assignee_id")
-    private User assignee;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "creator_id")
-    private User creator;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id")
-    private Project project;
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
     
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -51,16 +43,14 @@ public class Task {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    // Constructors
     public Task() {}
     
-    public Task(String title, String description, User creator) {
+    public Task(String title, String description, User user) {
         this.title = title;
         this.description = description;
-        this.creator = creator;
+        this.user = user;
     }
     
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     
@@ -79,14 +69,8 @@ public class Task {
     public LocalDateTime getDueDate() { return dueDate; }
     public void setDueDate(LocalDateTime dueDate) { this.dueDate = dueDate; }
     
-    public User getAssignee() { return assignee; }
-    public void setAssignee(User assignee) { this.assignee = assignee; }
-    
-    public User getCreator() { return creator; }
-    public void setCreator(User creator) { this.creator = creator; }
-    
-    public Project getProject() { return project; }
-    public void setProject(Project project) { this.project = project; }
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
     
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

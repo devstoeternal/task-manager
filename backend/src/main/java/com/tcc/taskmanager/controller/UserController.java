@@ -1,33 +1,41 @@
 package com.tcc.taskmanager.controller;
 
-import com.tcc.taskmanager.model.User;
-import com.tcc.taskmanager.repository.UserRepository;
+import com.tcc.taskmanager.model.dto.UserProfileDto;
+import com.tcc.taskmanager.model.dto.ChangePasswordDto;
+import com.tcc.taskmanager.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/user")
 public class UserController {
 
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
-    @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
-        List<User> users = userRepository.findAll();
-        users.forEach(user -> user.setPassword(null));
-        return ResponseEntity.ok(users);
+    @GetMapping("/profile")
+    public ResponseEntity<UserProfileDto> getProfile(Authentication authentication) {
+        UserProfileDto profile = userService.getUserProfile(authentication.getName());
+        return ResponseEntity.ok(profile);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
-        User user = userRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
-        user.setPassword(null);
-        return ResponseEntity.ok(user);
+    @PutMapping("/profile")
+    public ResponseEntity<UserProfileDto> updateProfile(@Valid @RequestBody UserProfileDto profileDto,
+                                                       Authentication authentication) {
+        UserProfileDto updatedProfile = userService.updateProfile(authentication.getName(), profileDto);
+        return ResponseEntity.ok(updatedProfile);
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordDto changePasswordDto,
+                                          Authentication authentication) {
+        userService.changePassword(authentication.getName(), 
+                                 changePasswordDto.getOldPassword(), 
+                                 changePasswordDto.getNewPassword());
+        return ResponseEntity.ok("Contraseña cambiada exitosamente");
     }
 }

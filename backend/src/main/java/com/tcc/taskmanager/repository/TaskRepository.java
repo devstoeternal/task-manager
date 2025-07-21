@@ -2,24 +2,23 @@ package com.tcc.taskmanager.repository;
 
 import com.tcc.taskmanager.model.Task;
 import com.tcc.taskmanager.model.TaskStatus;
+import com.tcc.taskmanager.model.Priority;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
     
-    List<Task> findByAssigneeId(Long assigneeId);
+    List<Task> findByUserId(Long userId);
     
-    List<Task> findByCreatorId(Long creatorId);
+    List<Task> findByUserIdAndStatus(Long userId, TaskStatus status);
     
-    List<Task> findByProjectId(Long projectId);
+    List<Task> findByUserIdAndPriority(Long userId, Priority priority);
     
-    List<Task> findByStatus(TaskStatus status);
+    List<Task> findByUserIdAndTitleContainingIgnoreCase(Long userId, String title);
     
-    @Query("SELECT t FROM Task t WHERE t.assignee.id = :userId OR t.creator.id = :userId")
-    List<Task> findTasksByUserId(@Param("userId") Long userId);
+    Optional<Task> findByIdAndUserId(Long id, Long userId);
 }

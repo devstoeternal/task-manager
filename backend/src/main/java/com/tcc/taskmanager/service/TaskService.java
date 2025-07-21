@@ -2,18 +2,21 @@ package com.tcc.taskmanager.service;
 
 import com.tcc.taskmanager.model.Task;
 import com.tcc.taskmanager.model.User;
-import com.tcc.taskmanager.model.Project;
+import com.tcc.taskmanager.model.TaskStatus;
+import com.tcc.taskmanager.model.Priority;
 import com.tcc.taskmanager.model.dto.TaskDto;
+import com.tcc.taskmanager.model.dto.TaskStatsDto;
 import com.tcc.taskmanager.repository.TaskRepository;
 import com.tcc.taskmanager.repository.UserRepository;
-import com.tcc.taskmanager.repository.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class TaskService {
 
     @Autowired
@@ -22,58 +25,47 @@ public class TaskService {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private ProjectRepository projectRepository;
-
-    public List<TaskDto> getAllTasks() {
-        return taskRepository.findAll().stream()
+    public List<TaskDto> getUserTasks(String username) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        
+        return taskRepository.findByUserId(user.getId()).stream()
             .map(this::convertToDto)
             .collect(Collectors.toList());
     }
 
-    public TaskDto getTaskById(Long id) {
-        Task task = taskRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+    public TaskDto getTaskById(Long id, String username) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        Task task = taskRepository.findByIdAndUserId(id, user.getId())
+            .orElseThrow(() -> new RuntimeException("Tarea no encontrada"));
+
         return convertToDto(task);
     }
 
-    public List<TaskDto> getTasksByUserId(Long userId) {
-        return taskRepository.findTasksByUserId(userId).stream()
-            .map(this::convertToDto)
-            .collect(Collectors.toList());
-    }
-
-    public TaskDto createTask(TaskDto taskDto, String creatorUsername) {
-        User creator = userRepository.findByUsername(creatorUsername)
-            .orElseThrow(() -> new RuntimeException("Creator not found"));
+    public TaskDto createTask(TaskDto taskDto, String username) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         Task task = new Task();
         task.setTitle(taskDto.getTitle());
         task.setDescription(taskDto.getDescription());
-        task.setStatus(taskDto.getStatus());
-        task.setPriority(taskDto.getPriority());
+        task.setStatus(taskDto.getStatus() != null ? taskDto.getStatus() : TaskStatus.TODO);
+        task.setPriority(taskDto.getPriority() != null ? taskDto.getPriority() : Priority.MEDIUM);
         task.setDueDate(taskDto.getDueDate());
-        task.setCreator(creator);
-
-        if (taskDto.getAssigneeId() != null) {
-            User assignee = userRepository.findById(taskDto.getAssigneeId())
-                .orElseThrow(() -> new RuntimeException("Assignee not found"));
-            task.setAssignee(assignee);
-        }
-
-        if (taskDto.getProjectId() != null) {
-            Project project = projectRepository.findById(taskDto.getProjectId())
-                .orElseThrow(() -> new RuntimeException("Project not found"));
-            task.setProject(project);
-        }
+        task.setUser(user);
 
         Task savedTask = taskRepository.save(task);
         return convertToDto(savedTask);
     }
 
-    public TaskDto updateTask(Long id, TaskDto taskDto) {
-        Task task = taskRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+    public TaskDto updateTask(Long id, TaskDto taskDto, String username) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        Task task = taskRepository.findByIdAndUserId(id, user.getId())
+            .orElseThrow(() -> new RuntimeException("Tarea no encontrada"));
 
         task.setTitle(taskDto.getTitle());
         task.setDescription(taskDto.getDescription());
@@ -81,27 +73,71 @@ public class TaskService {
         task.setPriority(taskDto.getPriority());
         task.setDueDate(taskDto.getDueDate());
 
-        if (taskDto.getAssigneeId() != null) {
-            User assignee = userRepository.findById(taskDto.getAssigneeId())
-                .orElseThrow(() -> new RuntimeException("Assignee not found"));
-            task.setAssignee(assignee);
-        }
-
-        if (taskDto.getProjectId() != null) {
-            Project project = projectRepository.findById(taskDto.getProjectId())
-                .orElseThrow(() -> new RuntimeException("Project not found"));
-            task.setProject(project);
-        }
-
         Task updatedTask = taskRepository.save(task);
         return convertToDto(updatedTask);
     }
 
-    public void deleteTask(Long id) {
-        if (!taskRepository.existsById(id)) {
-            throw new RuntimeException("Task not found with id: " + id);
-        }
-        taskRepository.deleteById(id);
+    public void deleteTask(Long id, String username) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        Task task = taskRepository.findByIdAndUserId(id, user.getId())
+            .orElseThrow(() -> new RuntimeException("Tarea no encontrada"));
+
+        taskRepository.delete(task);
+    }
+
+    public List<TaskDto> getUserTasksByStatus(String username, TaskStatus status) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        return taskRepository.findByUserIdAndStatus(user.getId(), status).stream()
+            .map(this::convertToDto)
+            .collect(Collectors.toList());
+    }
+
+    public List<TaskDto> getUserTasksByPriority(String username, Priority priority) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        return taskRepository.findByUserIdAndPriority(user.getId(), priority).stream()
+            .map(this::convertToDto)
+            .collect(Collectors.toList());
+    }
+
+    public List<TaskDto> searchUserTasks(String username, String query) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        return taskRepository.findByUserIdAndTitleContainingIgnoreCase(user.getId(), query).stream()
+            .map(this::convertToDto)
+            .collect(Collectors.toList());
+    }
+
+    public TaskStatsDto getUserTaskStats(String username) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        List<Task> tasks = taskRepository.findByUserId(user.getId());
+        
+        long totalTasks = tasks.size();
+        long todoTasks = tasks.stream().filter(t -> t.getStatus() == TaskStatus.TODO).count();
+        long inProgressTasks = tasks.stream().filter(t -> t.getStatus() == TaskStatus.IN_PROGRESS).count();
+        long doneTasks = tasks.stream().filter(t -> t.getStatus() == TaskStatus.DONE).count();
+
+        return new TaskStatsDto(totalTasks, todoTasks, inProgressTasks, doneTasks);
+    }
+
+    public TaskDto updateTaskStatus(Long id, TaskStatus status, String username) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        Task task = taskRepository.findByIdAndUserId(id, user.getId())
+            .orElseThrow(() -> new RuntimeException("Tarea no encontrada"));
+
+        task.setStatus(status);
+        Task updatedTask = taskRepository.save(task);
+        return convertToDto(updatedTask);
     }
 
     private TaskDto convertToDto(Task task) {
@@ -114,17 +150,12 @@ public class TaskService {
         dto.setDueDate(task.getDueDate());
         dto.setCreatedAt(task.getCreatedAt());
         dto.setUpdatedAt(task.getUpdatedAt());
-
-        if (task.getAssignee() != null) {
-            dto.setAssigneeId(task.getAssignee().getId());
-            dto.setAssigneeName(task.getAssignee().getFirstName() + " " + task.getAssignee().getLastName());
+        
+        if (task.getUser() != null) {
+            dto.setUserId(task.getUser().getId());
+            dto.setUserFullName(task.getUser().getFullName());
         }
-
-        if (task.getProject() != null) {
-            dto.setProjectId(task.getProject().getId());
-            dto.setProjectName(task.getProject().getName());
-        }
-
+        
         return dto;
     }
 }
