@@ -1,11 +1,34 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
   <head>
-    <title>My app</title>
+    <title>Task Manager - Sistema de Gestión de Tareas</title>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <base href="/">
+    
+    <!-- Material Icons Font -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Material Design Theme -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
   </head>
   <body>
-    <app-root>Loading...</app-root>
+    <app-root>
+      <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: Inter, sans-serif;">
+        <div style="text-align: center;">
+          <div style="width: 40px; height: 40px; border: 3px solid #f3f3f3; border-top: 3px solid #2196F3; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
+          <p style="color: #666; margin: 0;">Cargando Task Manager...</p>
+        </div>
+      </div>
+      <style>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+    </app-root>
   </body>
 </html>
