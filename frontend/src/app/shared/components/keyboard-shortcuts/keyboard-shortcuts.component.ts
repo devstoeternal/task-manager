@@ -23,12 +23,13 @@ export interface KeyboardShortcut {
         <div *ngFor="let shortcut of shortcuts" class="flex items-center justify-between">
           <span class="text-xs text-gray-600 dark:text-gray-300 flex-1">{{ shortcut.description }}</span>
           <div class="flex items-center space-x-1 ml-2">
-            <kbd 
-              *ngFor="let key of shortcut.keys; let last = last"
+            <ng-container *ngFor="let key of shortcut.keys; let isLast = last">
+              <kbd 
               class="inline-flex items-center px-1.5 py-0.5 text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded">
-              {{ key }}
-            </kbd>
-            <span *ngIf="!last" class="text-gray-400 text-xs">+</span>
+                {{ key }}
+              </kbd>
+              <span *ngIf="!isLast" class="text-gray-400 text-xs">+</span>
+            </ng-container>
           </div>
         </div>
       </div>

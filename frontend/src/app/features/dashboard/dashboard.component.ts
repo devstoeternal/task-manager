@@ -1,11 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatGridListModule } from '@angular/material/grid-list';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -13,6 +10,7 @@ import { TaskService } from '../../core/services/task.service';
 import { AuthService } from '../../core/services/auth.service';
 import { TaskStats, Task, TaskStatus, TaskPriority } from '../../core/models/task.interface';
 import { UserProfile } from '../../core/models/user.interface';
+import { ExportButtonsComponent } from '../../shared/components/export-buttons/export-buttons.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -20,18 +18,378 @@ import { UserProfile } from '../../core/models/user.interface';
   imports: [
     CommonModule,
     RouterModule,
-    MatCardModule,
     MatIconModule,
     MatButtonModule,
-    MatProgressBarModule,
-    MatGridListModule
+    ExportButtonsComponent
   ],
   template: `
-    <div class="dashboard-container">
-      <div class="welcome-section">
-        <h1>¡Hola{{ userProfile ? ', ' + userProfile.firstName : '' }}!</h1>
-        <p>Aquí tienes un resumen de tus tareas</p>
+    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Welcome Header -->
+        <div class="mb-8">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div class="mb-4 sm:mb-0">
+              <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                ¡Hola{{ userProfile ? ', ' + userProfile.firstName : '' }}! 👋
+              </h1>
+              <p class="text-lg text-gray-600 dark:text-gray-300">
+                Aquí tienes un resumen de tu productividad
+              </p>
+            </div>
+            <div class="flex items-center space-x-3">
+              <app-export-buttons 
+                [formats]="['pdf', 'excel']" 
+                [loading]="false"
+                (export)="onExport($event)">
+              </app-export-buttons>
+              <button 
+                routerLink="/tasks" 
+                class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm">
+                <mat-icon class="mr-2 text-sm">add</mat-icon>
+                Nueva Tarea
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats Cards -->
+        @if (stats) {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <!-- Total Tasks -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total de Tareas</p>
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.total }}</p>
+              </div>
+              <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <mat-icon class="text-blue-600 dark:text-blue-400">assignment</mat-icon>
+              </div>
+            </div>
+          </div>
+
+          <!-- Completed Tasks -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Completadas</p>
+                <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ stats.completed }}</p>
+                @if (stats.total > 0) {
+                <div class="mt-2">
+                  <div class="flex items-center">
+                    <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-2">
+                      <div 
+                        class="bg-green-500 h-2 rounded-full transition-all duration-300"
+                        [style.width.%]="getCompletionPercentage()">
+                      </div>
+                    </div>
+                    <span class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ getCompletionPercentage() }}%</span>
+                  </div>
+                </div>
+                }
+              </div>
+              <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                <mat-icon class="text-green-600 dark:text-green-400">check_circle</mat-icon>
+              </div>
+            </div>
+          </div>
+
+          <!-- In Progress Tasks -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">En Progreso</p>
+                <p class="text-3xl font-bold text-orange-600 dark:text-orange-400">{{ stats.inProgress }}</p>
+              </div>
+              <div class="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                <mat-icon class="text-orange-600 dark:text-orange-400">hourglass_empty</mat-icon>
+              </div>
+            </div>
+          </div>
+
+          <!-- Overdue Tasks -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Vencidas</p>
+                <p class="text-3xl font-bold text-red-600 dark:text-red-400">{{ stats.overdue }}</p>
+              </div>
+              <div class="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                <mat-icon class="text-red-600 dark:text-red-400">schedule</mat-icon>
+              </div>
+            </div>
+          </div>
+        </div>
+        }
+
+        <!-- Charts Section -->
+        @if (stats) {
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <!-- Status Breakdown -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Estado de las Tareas</h3>
+              <mat-icon class="text-gray-400">donut_small</mat-icon>
+            </div>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                  <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Por Hacer</span>
+                </div>
+                <span class="text-sm font-bold text-gray-900 dark:text-white">{{ stats.todo }}</span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                  <div class="w-3 h-3 bg-orange-500 rounded-full"></div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">En Progreso</span>
+                </div>
+                <span class="text-sm font-bold text-gray-900 dark:text-white">{{ stats.inProgress }}</span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                  <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">En Revisión</span>
+                </div>
+                <span class="text-sm font-bold text-gray-900 dark:text-white">{{ stats.inReview }}</span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                  <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Completadas</span>
+                </div>
+                <span class="text-sm font-bold text-gray-900 dark:text-white">{{ stats.completed }}</span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                  <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Canceladas</span>
+                </div>
+                <span class="text-sm font-bold text-gray-900 dark:text-white">{{ stats.cancelled }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Priority Breakdown -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Prioridades</h3>
+              <mat-icon class="text-gray-400">priority_high</mat-icon>
+            </div>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                  <div class="w-3 h-3 bg-indigo-600 rounded-full"></div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Urgente</span>
+                </div>
+                <span class="text-sm font-bold text-gray-900 dark:text-white">{{ stats.urgentPriority }}</span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                  <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Alta</span>
+                </div>
+                <span class="text-sm font-bold text-gray-900 dark:text-white">{{ stats.highPriority }}</span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                  <div class="w-3 h-3 bg-orange-500 rounded-full"></div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Media</span>
+                </div>
+                <span class="text-sm font-bold text-gray-900 dark:text-white">{{ stats.mediumPriority }}</span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                  <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Baja</span>
+                </div>
+                <span class="text-sm font-bold text-gray-900 dark:text-white">{{ stats.lowPriority }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        }
+
+        <!-- Recent Tasks -->
+        @if (recentTasks.length > 0) {
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Tareas Recientes</h3>
+            <button 
+              routerLink="/tasks" 
+              class="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
+              Ver todas
+              <mat-icon class="ml-1 text-sm">arrow_forward</mat-icon>
+            </button>
+          </div>
+          <div class="space-y-3">
+            @for (task of recentTasks; track task.id) {
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ task.title }}</h4>
+                <p class="text-sm text-gray-600 dark:text-gray-400 truncate">{{ task.description }}</p>
+                <div class="flex items-center space-x-3 mt-2">
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                        [ngClass]="{
+                          'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400': task.status === 'TODO',
+                          'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400': task.status === 'IN_PROGRESS',
+                          'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400': task.status === 'IN_REVIEW',
+                          'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400': task.status === 'DONE',
+                          'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400': task.status === 'CANCELLED'
+                        }">
+                    {{ getStatusLabel(task.status) }}
+                  </span>
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                        [ngClass]="{
+                          'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400': task.priority === 'LOW',
+                          'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400': task.priority === 'MEDIUM',
+                          'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400': task.priority === 'HIGH',
+                          'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400': task.priority === 'URGENT'
+                        }">
+                    {{ getPriorityLabel(task.priority) }}
+                  </span>
+                  @if (task.dueDate) {
+                  <span class="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                    <mat-icon class="mr-1 text-xs">schedule</mat-icon>
+                    {{ formatDate(task.dueDate) }}
+                  </span>
+                  }
+                </div>
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+        }
+
+        <!-- Quick Actions -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Acciones Rápidas</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <button 
+              routerLink="/tasks/new"
+              class="flex items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg transition-colors group">
+              <mat-icon class="mr-3 group-hover:scale-110 transition-transform">add</mat-icon>
+              <span class="font-medium">Nueva Tarea</span>
+            </button>
+            <button 
+              routerLink="/tasks"
+              class="flex items-center justify-center p-4 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg transition-colors group">
+              <mat-icon class="mr-3 group-hover:scale-110 transition-transform">list</mat-icon>
+              <span class="font-medium">Ver Tareas</span>
+            </button>
+            <button 
+              routerLink="/profile"
+              class="flex items-center justify-center p-4 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-lg transition-colors group">
+              <mat-icon class="mr-3 group-hover:scale-110 transition-transform">person</mat-icon>
+              <span class="font-medium">Mi Perfil</span>
+            </button>
+          </div>
+        </div>
       </div>
+    </div>
+  `,
+  styles: []
+})
+export class DashboardComponent implements OnInit, OnDestroy {
+  stats: TaskStats | null = null;
+  recentTasks: Task[] = [];
+  userProfile: UserProfile | null = null;
+  loading = false;
+
+  private destroy$ = new Subject<void>();
+
+  constructor(
+    private taskService: TaskService,
+    private authService: AuthService
+  ) {}
+
+  ngOnInit(): void {
+    this.loadUserProfile();
+    this.loadDashboardData();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private loadUserProfile(): void {
+    this.userProfile = this.authService.getUserProfile();
+  }
+
+  private loadDashboardData(): void {
+    this.loading = true;
+
+    // Cargar estadísticas
+    this.taskService.getMyTaskStats()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (stats) => {
+          this.stats = stats;
+        },
+        error: (error) => {
+          console.error('Error loading stats:', error);
+        }
+      });
+
+    // Cargar tareas recientes
+    this.taskService.getMyTasks()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (tasks) => {
+          // Tomar las 5 tareas más recientes
+          this.recentTasks = tasks
+            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+            .slice(0, 5);
+          this.loading = false;
+        },
+        error: (error) => {
+          console.error('Error loading tasks:', error);
+          this.loading = false;
+        }
+      });
+  }
+
+  onExport(format: string): void {
+    console.log('Exporting to:', format);
+    // TODO: Implement export functionality
+  }
+
+  getCompletionPercentage(): number {
+    if (!this.stats || this.stats.total === 0) return 0;
+    return Math.round((this.stats.completed / this.stats.total) * 100);
+  }
+
+  getStatusLabel(status: TaskStatus): string {
+    const labels = {
+      'TODO': 'Por Hacer',
+      'IN_PROGRESS': 'En Progreso',
+      'IN_REVIEW': 'En Revisión',
+      'DONE': 'Completada',
+      'CANCELLED': 'Cancelada'
+    };
+    return labels[status] || status;
+  }
+
+  getPriorityLabel(priority: TaskPriority): string {
+    const labels = {
+      'LOW': 'Baja',
+      'MEDIUM': 'Media',
+      'HIGH': 'Alta',
+      'URGENT': 'Urgente'
+    };
+    return labels[priority] || priority;
+  }
+
+  formatDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  }
+}
 
       <!-- Stats Cards -->
       <div class="stats-grid" *ngIf="stats">

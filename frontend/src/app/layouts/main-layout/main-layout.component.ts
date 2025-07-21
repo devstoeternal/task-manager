@@ -19,6 +19,21 @@ import { UserProfile } from '../../core/models/user.interface';
 
 @Component({
   selector: 'app-main-layout',
+  standalone: true,
+  imports: [
+    CommonModule,
+    RouterOutlet,
+    RouterModule,
+    MatSidenavModule,
+    MatToolbarModule,
+    MatButtonModule,
+    MatIconModule,
+    MatListModule,
+    MatMenuModule,
+    MatDividerModule,
+    ThemeToggleComponent,
+    KeyboardShortcutsComponent
+  ],
   template: `
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
       <mat-sidenav-container class="h-screen">
@@ -27,9 +42,9 @@ import { UserProfile } from '../../core/models/user.interface';
         #drawer 
         class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700" 
         fixedInViewport
-        [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
-        [mode]="(isHandset$ | async) ? 'over' : 'side'"
-        [opened]="(isHandset$ | async) === false">
+        [attr.role]="isHandset ? 'dialog' : 'navigation'"
+        [mode]="isHandset ? 'over' : 'side'"
+        [opened]="!isHandset">
         
         <!-- Sidebar Header -->
         <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -99,7 +114,7 @@ import { UserProfile } from '../../core/models/user.interface';
               <button
                 type="button"
                 (click)="drawer.toggle()"
-                *ngIf="isHandset$ | async"
+                *ngIf="isHandset"
                 class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
                 <mat-icon>menu</mat-icon>
               </button>
@@ -120,7 +135,8 @@ import { UserProfile } from '../../core/models/user.interface';
               </button>
               
               <!-- User Profile Dropdown -->
-              <div class="relative" *ngIf="userProfile">
+              @if (userProfile) {
+              <div class="relative">
                 <button 
                   [matMenuTriggerFor]="userMenu"
                   class="flex items-center space-x-3 p-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
@@ -151,6 +167,7 @@ import { UserProfile } from '../../core/models/user.interface';
                   </button>
                 </mat-menu>
               </div>
+              }
             </div>
           </div>
         </header>
@@ -169,11 +186,9 @@ import { UserProfile } from '../../core/models/user.interface';
 })
 export class MainLayoutComponent implements OnInit, OnDestroy {
   userProfile: UserProfile | null = null;
+  isHandset = false;
   
   private destroy$ = new Subject<void>();
-
-  isHandset$ = this.breakpointObserver.observe(Breakpoints.Handset)
-    .pipe(map(result => result.matches));
 
   constructor(
     private breakpointObserver: BreakpointObserver,
@@ -182,6 +197,16 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // Subscribe to breakpoint changes
+    this.breakpointObserver.observe(Breakpoints.Handset)
+      .pipe(
+        map(result => result.matches),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(isHandset => {
+        this.isHandset = isHandset;
+      });
+
     this.authService.currentUser$
       .pipe(takeUntil(this.destroy$))
       .subscribe(user => {

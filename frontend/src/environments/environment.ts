@@ -3,7 +3,8 @@ export const environment = {
   apiUrl: 'http://localhost:8080/api',
   storageKeys: {
     token: 'tcc_auth_token',
-    user: 'tcc_user_data'
+    user: 'tcc_user_data',
+    theme: 'tcc_theme'
   },
   app: {
     name: 'Task Manager TCC',
