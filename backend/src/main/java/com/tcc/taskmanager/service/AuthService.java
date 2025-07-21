@@ -26,7 +26,7 @@ public class AuthService {
     private UserRepository userRepository;
 
     @Autowired
-    private PasswordEncoder encoder;
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private JwtUtils jwtUtils;
@@ -50,7 +50,7 @@ public class AuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
 
-        return new JwtResponseDto(jwt, user.getUsername(), user.getEmail(), user.getRole().name());
+        return new JwtResponseDto(jwt, user.getId(), user.getUsername(), user.getEmail());
     }
 
     /**
@@ -78,28 +78,31 @@ public class AuthService {
     }
 
     /**
-     * 📝 REGISTER USER
+     * 📝 REGISTER USER - DEVUELVE JWT PARA AUTO-LOGIN
      */
-    public String registerUser(RegisterRequestDto signUpRequest) {
+    public JwtResponseDto registerUser(RegisterRequestDto signUpRequest) {
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
-            throw new RuntimeException("Error: Username is already taken!");
+            throw new RuntimeException("El nombre de usuario ya está en uso");
         }
 
         if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-            throw new RuntimeException("Error: Email is already in use!");
+            throw new RuntimeException("El email ya está en uso");
         }
 
         // Create new user's account
         User user = new User(
             signUpRequest.getUsername(),
             signUpRequest.getEmail(),
-            encoder.encode(signUpRequest.getPassword()),
+            passwordEncoder.encode(signUpRequest.getPassword()),
             signUpRequest.getFirstName(),
             signUpRequest.getLastName()
         );
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
-        return "User registered successfully!";
+        // GENERAR TOKEN INMEDIATAMENTE PARA AUTO-LOGIN
+        String jwt = jwtUtils.generateTokenFromUsername(savedUser.getUsername());
+
+        return new JwtResponseDto(jwt, savedUser.getId(), savedUser.getUsername(), savedUser.getEmail());
     }
 }
