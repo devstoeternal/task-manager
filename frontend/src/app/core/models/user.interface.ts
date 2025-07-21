@@ -10,19 +10,30 @@ export interface User {
   updatedAt: string;
 }
 
-export type UserRole = 'ADMIN' | 'MANAGER' | 'USER';
+export type UserRole = 'USER';
+
+export interface UserProfile {
+  id: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  initials: string;
+  role: UserRole;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface UpdateProfileRequest {
   firstName: string;
   lastName: string;
+  username: string;
+  email: string;  
 }
 
 export interface ChangePasswordRequest {
-  currentPassword: string;
+  oldPassword: string;
   newPassword: string;
-}
-
-export interface UserProfile extends User {
-  fullName: string;
-  initials: string;
 }

@@ -1,97 +1,86 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { Observable, combineLatest } from 'rxjs';
-import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
+
+
+
+
+import { Task, TaskPriority, TaskStatus } from '../../../core/models/task.interface';
+import { TaskFormComponent } from '../task-form/task-form.component';
+import { TaskFiltersComponent } from '../task-filters/task-filters.component';
 import { TaskService } from '../../../core/services/task.service';
-import { Task, TaskFilter, TaskStatus, TaskPriority } from '../../../core/models/task.interface';
-import { UI_LABELS } from '../../../shared/constants/ui-labels.constants';
 
 @Component({
   selector: 'app-task-list',
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+    MatChipsModule,
+    MatProgressBarModule,
+    TaskFormComponent,
+    TaskFiltersComponent
+  ],
   template: `
     <div class="task-list-container">
-      <!-- Header -->
-      <div class="page-header">
-        <div class="header-content">
-          <h1 class="page-title">{{ labels.ALL_TASKS }}</h1>
-          <button mat-raised-button color="primary" routerLink="/tasks/new">
-            <mat-icon>add</mat-icon>
-            {{ labels.NEW_TASK }}
-          </button>
-        </div>
+      <div class="task-header">
+        <h1>Mis Tareas</h1>
+        <button mat-raised-button color="primary" (click)="openTaskForm()">
+          <mat-icon>add</mat-icon>
+          Nueva Tarea
+        </button>
       </div>
 
-      <!-- Filters -->
-      <mat-card class="filters-card">
-        <mat-card-content>
-          <div class="filters-row">
-            <!-- Search -->
-            <mat-form-field appearance="outline" class="search-field">
-              <mat-label>{{ labels.SEARCH }}</mat-label>
-              <input matInput [formControl]="searchControl" placeholder="Buscar tareas...">
-              <mat-icon matSuffix>search</mat-icon>
-            </mat-form-field>
+      <app-task-filters 
+        (filtersChanged)="onFiltersChanged($event)"
+        [loading]="loading">
+      </app-task-filters>
 
-            <!-- Status Filter -->
-            <mat-form-field appearance="outline">
-              <mat-label>Estado</mat-label>
-              <mat-select [formControl]="statusControl" multiple>
-                <mat-option value="TODO">{{ labels.TODO }}</mat-option>
-                <mat-option value="IN_PROGRESS">{{ labels.IN_PROGRESS }}</mat-option>
-                <mat-option value="DONE">{{ labels.DONE }}</mat-option>
-              </mat-select>
-            </mat-form-field>
+      <div class="tasks-content">
+        <mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar>
+        
+        <div class="tasks-grid" *ngIf="!loading">
+          <mat-card 
+            class="task-card" 
+            *ngFor="let task of filteredTasks" 
+            [class.overdue]="isOverdue(task)">
+            
+            <mat-card-header>
+              <div class="task-title-row">
+                <h3 class="task-title">{{ task.title }}</h3>
+                <button mat-icon-button [matMenuTriggerFor]="taskMenu">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                
+                <mat-menu #taskMenu="matMenu">
+                  <button mat-menu-item (click)="editTask(task)">
+                    <mat-icon>edit</mat-icon>
+                    Editar
+                  </button>
+                  <button mat-menu-item (click)="deleteTask(task.id)">
+                    <mat-icon>delete</mat-icon>
+                    Eliminar
+                  </button>
+                </mat-menu>
+              </div>
+            </mat-card-header>
 
-            <!-- Priority Filter -->
-            <mat-form-field appearance="outline">
-              <mat-label>Prioridad</mat-label>
-              <mat-select [formControl]="priorityControl" multiple>
-                <mat-option value="LOW">{{ labels.LOW }}</mat-option>
-                <mat-option value="MEDIUM">{{ labels.MEDIUM }}</mat-option>
-                <mat-option value="HIGH">{{ labels.HIGH }}</mat-option>
-              </mat-select>
-            </mat-form-field>
-
-            <!-- Clear Filters -->
-            <button mat-stroked-button (click)="clearFilters()" class="clear-filters">
-              <mat-icon>clear</mat-icon>
-              {{ labels.CLEAR }}
-            </button>
-          </div>
-        </mat-card-content>
-      </mat-card>
-
-      <!-- Task List -->
-      <div class="tasks-grid" *ngIf="filteredTasks$ | async as tasks">
-        <div *ngIf="tasks.length === 0" class="empty-state">
-          <mat-card>
             <mat-card-content>
-              <mat-icon class="empty-icon">task_alt</mat-icon>
-              <h3>{{ labels.NO_TASKS }}</h3>
-              <p>No se encontraron tareas con los filtros aplicados</p>
-              <button mat-raised-button color="primary" routerLink="/tasks/new">
-                <mat-icon>add</mat-icon>
-                {{ labels.NEW_TASK }}
-              </button>
-            </mat-card-content>
-          </mat-card>
-        </div>
-
-        <mat-card *ngFor="let task of tasks" class="task-card" [routerLink]="['/tasks', task.id]">
-          <mat-card-content>
-            <div class="task-header">
-              <h3 class="task-title">{{ task.title }}</h3>
-              <div class="task-badges">
+              <p class="task-description">{{ task.description }}</p>
+              
+              <div class="task-meta">
                 <mat-chip-set>
                   <mat-chip [class]="'status-' + task.status.toLowerCase()">
                     {{ getStatusLabel(task.status) }}
@@ -100,355 +89,321 @@ import { UI_LABELS } from '../../../shared/constants/ui-labels.constants';
                     {{ getPriorityLabel(task.priority) }}
                   </mat-chip>
                 </mat-chip-set>
+                
+                <div class="task-dates" *ngIf="task.dueDate">
+                  <span class="due-date">
+                    <mat-icon>schedule</mat-icon>
+                    {{ formatDate(task.dueDate) }}
+                  </span>
+                </div>
               </div>
-            </div>
+            </mat-card-content>
 
-            <p class="task-description">{{ task.description | slice:0:150 }}...</p>
+            <mat-card-actions>
+              <button mat-button (click)="changeStatus(task, 'TODO')" 
+                      [disabled]="task.status === 'TODO'">
+                Por Hacer
+              </button>
+              <button mat-button (click)="changeStatus(task, 'IN_PROGRESS')" 
+                      [disabled]="task.status === 'IN_PROGRESS'">
+                En Progreso
+              </button>
+              <button mat-button (click)="changeStatus(task, 'IN_REVIEW')" 
+                      [disabled]="task.status === 'IN_REVIEW'">
+                En Revisión
+              </button>
+              <button mat-button (click)="changeStatus(task, 'DONE')" 
+                      [disabled]="task.status === 'DONE'">
+                Completada
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </div>
 
-            <div class="task-meta">
-              <div class="task-assignee">
-                <mat-icon>person</mat-icon>
-                <span>{{ task.assignee ? task.assignee.firstName + ' ' + task.assignee.lastName : 'Sin asignar' }}</span>
-              </div>
-              <div class="task-date">
-                <mat-icon>schedule</mat-icon>
-                <span>{{ formatDate(task.dueDate) }}</span>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
+        <div class="empty-state" *ngIf="!loading && filteredTasks.length === 0">
+          <mat-icon>assignment</mat-icon>
+          <h3>No hay tareas</h3>
+          <p>Crea tu primera tarea para comenzar</p>
+          <button mat-raised-button color="primary" (click)="openTaskForm()">
+            <mat-icon>add</mat-icon>
+            Crear Tarea
+          </button>
+        </div>
       </div>
 
-      <!-- Loading -->
-      <div *ngIf="loading$ | async" class="loading-container">
-        <mat-card>
-          <mat-card-content>
-            <div class="loading-content">
-              <mat-icon class="loading-icon">refresh</mat-icon>
-              <p>{{ labels.LOADING }}</p>
-            </div>
-          </mat-card-content>
-        </mat-card>
-      </div>
+      <app-task-form
+        *ngIf="showTaskForm"
+        [task]="selectedTask"
+        (taskSaved)="onTaskSaved($event)"
+        (cancelled)="onTaskFormCancelled()">
+      </app-task-form>
     </div>
   `,
   styles: [`
     .task-list-container {
+      padding: 24px;
       max-width: 1200px;
       margin: 0 auto;
-    }
-
-    .page-header {
-      margin-bottom: 24px;
-    }
-
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-
-    .page-title {
-      font-size: 2rem;
-      font-weight: 700;
-      margin: 0;
-      color: var(--mdc-theme-on-surface);
-    }
-
-    .filters-card {
-      margin-bottom: 24px;
-      border-radius: 12px;
-    }
-
-    .filters-row {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .search-field {
-      flex: 1;
-      min-width: 300px;
-    }
-
-    .clear-filters {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .tasks-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-      gap: 24px;
-    }
-
-    .task-card {
-      border-radius: 12px;
-      transition: all 0.2s ease;
-      cursor: pointer;
-    }
-
-    .task-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     }
 
     .task-header {
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .task-header h1 {
+      margin: 0;
+      font-size: 2rem;
+      font-weight: 500;
+    }
+
+    .tasks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .task-card {
+      transition: transform 0.2s ease-in-out;
+    }
+
+    .task-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+    }
+
+    .task-card.overdue {
+      border-left: 4px solid #f44336;
+    }
+
+    .task-title-row {
+      display: flex;
+      justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 12px;
-      gap: 16px;
+      width: 100%;
     }
 
     .task-title {
-      font-size: 1.25rem;
-      font-weight: 600;
       margin: 0;
-      color: var(--mdc-theme-on-surface);
+      font-size: 1.1rem;
+      font-weight: 500;
       flex: 1;
     }
 
-    .task-badges {
-      flex-shrink: 0;
-    }
-
     .task-description {
-      color: var(--mdc-theme-on-surface-variant);
-      margin: 0 0 16px 0;
-      line-height: 1.5;
+      color: rgba(0,0,0,0.6);
+      margin: 12px 0;
+      line-height: 1.4;
     }
 
     .task-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.875rem;
-      color: var(--mdc-theme-on-surface-variant);
+      margin: 16px 0;
     }
 
-    .task-assignee,
-    .task-date {
+    .task-dates {
+      margin-top: 8px;
+    }
+
+    .due-date {
       display: flex;
       align-items: center;
       gap: 4px;
+      font-size: 0.875rem;
+      color: rgba(0,0,0,0.6);
     }
 
-    .task-assignee mat-icon,
-    .task-date mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
+    mat-chip-set {
+      margin-bottom: 8px;
     }
 
-    /* Status Chips */
-    .status-todo {
-      background: #FFF3E0;
-      color: #E65100;
-    }
+    .status-todo { background-color: #e3f2fd; color: #1976d2; }
+    .status-in_progress { background-color: #fff3e0; color: #f57c00; }
+    .status-in_review { background-color: #f3e5f5; color: #7b1fa2; }
+    .status-done { background-color: #e8f5e8; color: #388e3c; }
+    .status-cancelled { background-color: #ffebee; color: #d32f2f; }
 
-    .status-in_progress {
-      background: #E3F2FD;
-      color: #0277BD;
-    }
+    .priority-low { background-color: #e8f5e8; color: #4caf50; }
+    .priority-medium { background-color: #fff3e0; color: #ff9800; }
+    .priority-high { background-color: #ffebee; color: #f44336; }
+    .priority-urgent { background-color: #3f51b5; color: white; }
 
-    .status-done {
-      background: #E8F5E8;
-      color: #2E7D32;
-    }
-
-    /* Priority Chips */
-    .priority-low {
-      background: #E8F5E8;
-      color: #2E7D32;
-    }
-
-    .priority-medium {
-      background: #FFF3E0;
-      color: #E65100;
-    }
-
-    .priority-high {
-      background: #FFEBEE;
-      color: #C62828;
-    }
-
-    .empty-state,
-    .loading-container {
-      grid-column: 1 / -1;
-    }
-
-    .empty-state mat-card,
-    .loading-container mat-card {
+    .empty-state {
       text-align: center;
-      padding: 48px 24px;
-      border-radius: 12px;
+      padding: 60px 20px;
+      color: rgba(0,0,0,0.6);
     }
 
-    .empty-icon,
-    .loading-icon {
+    .empty-state mat-icon {
       font-size: 64px;
       width: 64px;
       height: 64px;
-      color: var(--mdc-theme-outline);
-      margin-bottom: 16px;
+      color: rgba(0,0,0,0.3);
     }
 
-    .loading-icon {
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .loading-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    .empty-state h3 {
+      margin: 16px 0 8px;
+      font-size: 1.5rem;
     }
 
     @media (max-width: 768px) {
+      .task-list-container {
+        padding: 16px;
+      }
+
       .tasks-grid {
         grid-template-columns: 1fr;
-        gap: 16px;
-      }
-
-      .filters-row {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .search-field {
-        min-width: auto;
-      }
-
-      .header-content {
-        flex-direction: column;
-        align-items: stretch;
       }
 
       .task-header {
         flex-direction: column;
-        gap: 12px;
+        gap: 16px;
+        align-items: stretch;
       }
     }
-  `],
-  standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    ReactiveFormsModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatChipsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule
-  ]
+  `]
 })
-export class TaskListComponent implements OnInit {
-  labels = UI_LABELS;
+export class TaskListComponent implements OnInit, OnDestroy {
+  tasks: Task[] = [];
+  filteredTasks: Task[] = [];
+  loading = false;
+  showTaskForm = false;
+  selectedTask: Task | null = null;
   
-  searchControl = new FormControl('');
-  statusControl = new FormControl<TaskStatus[]>([]);
-  priorityControl = new FormControl<TaskPriority[]>([]);
-  
-  tasks$!: Observable<Task[]>;
-  loading$!: Observable<boolean>;
-  filteredTasks$!: Observable<Task[]>;
+  private destroy$ = new Subject<void>();
 
-  constructor(private taskService: TaskService) {}
+  constructor(
+    private taskService: TaskService,
+    private snackBar: MatSnackBar
+  ) {}
 
   ngOnInit(): void {
-    this.tasks$ = this.taskService.tasks$;
-    this.loading$ = this.taskService.loading$;
+    this.loadTasks();
     
-    // Load all tasks
-    this.taskService.getAllTasks().subscribe();
-    
-    // Setup filtered tasks observable
-    this.filteredTasks$ = combineLatest([
-      this.tasks$,
-      this.searchControl.valueChanges.pipe(
-        startWith(''),
-        debounceTime(300),
-        distinctUntilChanged()
-      ),
-      this.statusControl.valueChanges.pipe(startWith([])),
-      this.priorityControl.valueChanges.pipe(startWith([]))
-    ]).pipe(
-      map(([tasks, search, statuses, priorities]) => {
-        return this.filterTasks(tasks, search || '', statuses || [], priorities || []);
-      })
-    );
+    this.taskService.tasks$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(tasks => {
+        this.tasks = tasks;
+        this.filteredTasks = tasks;
+      });
+
+    this.taskService.loading$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(loading => this.loading = loading);
   }
 
-  private filterTasks(
-    tasks: Task[], 
-    search: string, 
-    statuses: TaskStatus[], 
-    priorities: TaskPriority[]
-  ): Task[] {
-    return tasks.filter(task => {
-      // Search filter
-      if (search) {
-        const searchLower = search.toLowerCase();
-        const matchesSearch = 
-          task.title.toLowerCase().includes(searchLower) ||
-          task.description.toLowerCase().includes(searchLower);
-        if (!matchesSearch) return false;
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  loadTasks(): void {
+    this.taskService.getMyTasks().subscribe({
+      error: (error) => {
+        this.snackBar.open('Error al cargar las tareas', 'Cerrar', {
+          duration: 3000,
+          panelClass: ['error-snackbar']
+        });
       }
-      
-      // Status filter
-      if (statuses.length > 0 && !statuses.includes(task.status)) {
-        return false;
-      }
-      
-      // Priority filter
-      if (priorities.length > 0 && !priorities.includes(task.priority)) {
-        return false;
-      }
-      
-      return true;
     });
   }
 
-  clearFilters(): void {
-    this.searchControl.setValue('');
-    this.statusControl.setValue([]);
-    this.priorityControl.setValue([]);
+  onFiltersChanged(filters: any): void {
+    this.taskService.filterTasks(filters)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(filteredTasks => {
+        this.filteredTasks = filteredTasks;
+      });
+  }
+
+  openTaskForm(): void {
+    this.selectedTask = null;
+    this.showTaskForm = true;
+  }
+
+  editTask(task: Task): void {
+    this.selectedTask = task;
+    this.showTaskForm = true;
+  }
+
+  deleteTask(taskId: number): void {
+    if (confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+      this.taskService.deleteTask(taskId).subscribe({
+        next: () => {
+          this.snackBar.open('Tarea eliminada', 'Cerrar', { duration: 3000 });
+        },
+        error: () => {
+          this.snackBar.open('Error al eliminar la tarea', 'Cerrar', {
+            duration: 3000,
+            panelClass: ['error-snackbar']
+          });
+        }
+      });
+    }
+  }
+
+  changeStatus(task: Task, newStatus: TaskStatus): void {
+    this.taskService.updateTaskStatus(task.id, newStatus).subscribe({
+      next: () => {
+        this.snackBar.open('Estado actualizado', 'Cerrar', { duration: 2000 });
+      },
+      error: () => {
+        this.snackBar.open('Error al actualizar el estado', 'Cerrar', {
+          duration: 3000,
+          panelClass: ['error-snackbar']
+        });
+      }
+    });
+  }
+
+  onTaskSaved(task: Task): void {
+    this.showTaskForm = false;
+    this.selectedTask = null;
+    this.snackBar.open(
+      this.selectedTask ? 'Tarea actualizada' : 'Tarea creada', 
+      'Cerrar', 
+      { duration: 3000 }
+    );
+  }
+
+  onTaskFormCancelled(): void {
+    this.showTaskForm = false;
+    this.selectedTask = null;
+  }
+
+  isOverdue(task: Task): boolean {
+    return task.dueDate 
+      ? new Date(task.dueDate) < new Date() && task.status !== 'DONE'
+      : false;
   }
 
   getStatusLabel(status: TaskStatus): string {
-    const statusLabels: Record<TaskStatus, string> = {
-      'TODO': this.labels.TODO,
-      'IN_PROGRESS': this.labels.IN_PROGRESS,
-      'DONE': this.labels.DONE
+    const labels = {
+      'TODO': 'Por Hacer',
+      'IN_PROGRESS': 'En Progreso',
+      'IN_REVIEW': 'En Revisión',
+      'DONE': 'Completada',
+      'CANCELLED': 'Cancelada'
     };
-    return statusLabels[status];
+    return labels[status] || status;
   }
 
   getPriorityLabel(priority: TaskPriority): string {
-    const priorityLabels: Record<TaskPriority, string> = {
-      'LOW': this.labels.LOW,
-      'MEDIUM': this.labels.MEDIUM,
-      'HIGH': this.labels.HIGH
+    const labels = {
+      'LOW': 'Baja',
+      'MEDIUM': 'Media',
+      'HIGH': 'Alta',
+      'URGENT': 'Urgente'
     };
-    return priorityLabels[priority];
+    return labels[priority] || priority;
   }
 
   formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short',
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric'
     });
   }

@@ -1,8 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
-import { MainLayoutComponent } from './layouts/main-layout/main-layout.component';
-import { AuthLayoutComponent } from './layouts/auth-layout/auth-layout.component';
 
 const routes: Routes = [
   {
@@ -12,7 +10,6 @@ const routes: Routes = [
   },
   {
     path: 'auth',
-    component: AuthLayoutComponent,
     children: [
       {
         path: 'login',
@@ -31,7 +28,6 @@ const routes: Routes = [
   },
   {
     path: '',
-    component: MainLayoutComponent,
     canActivate: [AuthGuard],
     children: [
       {
@@ -40,15 +36,11 @@ const routes: Routes = [
       },
       {
         path: 'tasks',
-        loadChildren: () => import('./features/tasks/tasks.routes').then(m => m.TASKS_ROUTES)
+        loadComponent: () => import('./features/tasks/task-list/task-list.component').then(c => c.TaskListComponent)
       },
       {
         path: 'profile',
         loadComponent: () => import('./features/profile/profile.component').then(c => c.ProfileComponent)
-      },
-      {
-        path: 'settings',
-        loadComponent: () => import('./features/settings/settings.component').then(c => c.SettingsComponent)
       }
     ]
   },
@@ -61,7 +53,7 @@ const routes: Routes = [
 @NgModule({
   imports: [RouterModule.forRoot(routes, {
     enableTracing: false,
-    preloadingStrategy: undefined
+    onSameUrlNavigation: 'reload'
   })],
   exports: [RouterModule]
 })

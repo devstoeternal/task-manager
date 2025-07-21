@@ -10,11 +10,16 @@ export const API_ENDPOINTS = {
   TASKS: {
     BASE: `${environment.apiUrl}/tasks`,
     MY_TASKS: `${environment.apiUrl}/tasks/my`,
-    BY_ID: (id: number) => `${environment.apiUrl}/tasks/${id}`
+    BY_ID: (id: number) => `${environment.apiUrl}/tasks/${id}`,
+    BY_STATUS: (status: string) => `${environment.apiUrl}/tasks/status/${status}`,
+    BY_PRIORITY: (priority: string) => `${environment.apiUrl}/tasks/priority/${priority}`,
+    STATS: `${environment.apiUrl}/tasks/stats`,
+    SEARCH: `${environment.apiUrl}/tasks/search`,
+    UPDATE_STATUS: (id: number) => `${environment.apiUrl}/tasks/${id}/status`
   },
-  USERS: {
-    BASE: `${environment.apiUrl}/users`,
-    PROFILE: `${environment.apiUrl}/users/profile`,
-    BY_ID: (id: number) => `${environment.apiUrl}/users/${id}`
+  USER: {
+    BASE: `${environment.apiUrl}/user`,
+    PROFILE: `${environment.apiUrl}/user/profile`,
+    BY_ID: (id: number) => `${environment.apiUrl}/user/${id}`
   }
 };

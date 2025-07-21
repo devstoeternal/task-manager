@@ -1,11 +1,3 @@
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  errors?: string[];
-  timestamp?: string;
-}
-
 export interface PaginationParams {
   page: number;
   size: number;
@@ -13,12 +5,18 @@ export interface PaginationParams {
   direction?: 'asc' | 'desc';
 }
 
+export interface ApiResponse<T> {
+  data: T;
+  message?: string;
+  success: boolean;
+}
+
 export interface PaginatedResponse<T> {
   content: T[];
   totalElements: number;
   totalPages: number;
-  size: number;
   number: number;
+  size: number;
   first: boolean;
   last: boolean;
 }

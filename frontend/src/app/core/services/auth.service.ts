@@ -17,7 +17,7 @@ import { environment } from '../../../environments/environment';
 export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   private tokenSubject = new BehaviorSubject<string | null>(null);
-  
+
   public currentUser$ = this.currentUserSubject.asObservable();
   public token$ = this.tokenSubject.asObservable();
   public isAuthenticated$ = this.token$.pipe(
@@ -78,6 +78,11 @@ export class AuthService {
     return this.tokenSubject.value || localStorage.getItem(environment.storageKeys.token);
   }
 
+  setToken(token: string): void {
+    this.tokenSubject.next(token);
+    localStorage.setItem(environment.storageKeys.token, token);
+  }
+
   getCurrentUser(): User | null {
     return this.currentUserSubject.value;
   }
@@ -117,14 +122,14 @@ export class AuthService {
 
     this.tokenSubject.next(response.token);
     this.currentUserSubject.next(user);
-    
+
     localStorage.setItem(environment.storageKeys.token, response.token);
     localStorage.setItem(environment.storageKeys.user, JSON.stringify(user));
   }
 
   private handleAuthError(error: HttpErrorResponse): Observable<never> {
     let errorMessage = 'Ha ocurrido un error inesperado';
-    
+
     if (error.error?.message) {
       errorMessage = error.error.message;
     } else if (error.status === 401) {
@@ -135,7 +140,7 @@ export class AuthService {
       errorMessage = 'El usuario ya existe';
     }
 
-    this.snackBar.open(errorMessage, UI_LABELS.CLOSE, { 
+    this.snackBar.open(errorMessage, UI_LABELS.CLOSE, {
       duration: 5000,
       panelClass: ['error-snackbar']
     });

@@ -13,8 +13,6 @@ import { Subject } from 'rxjs';
 import { takeUntil, map } from 'rxjs/operators';
 
 import { AuthService } from '../../core/services/auth.service';
-import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle.component';
-import { UI_LABELS } from '../../shared/constants/ui-labels.constants';
 import { UserProfile } from '../../core/models/user.interface';
 
 @Component({
@@ -25,49 +23,39 @@ import { UserProfile } from '../../core/models/user.interface';
       <mat-sidenav 
         #drawer 
         class="sidenav" 
-        fixedInViewport 
+        fixedInViewport
         [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
         [mode]="(isHandset$ | async) ? 'over' : 'side'"
         [opened]="(isHandset$ | async) === false">
         
-        <mat-toolbar class="sidebar-header">
-          <img src="/assets/logo.png" alt="Logo" class="logo" />
-          <span class="app-name">Task Manager</span>
+        <mat-toolbar class="sidenav-header">
+          <mat-icon class="app-icon">assignment</mat-icon>
+          <span class="app-title">Task Manager</span>
         </mat-toolbar>
-
-        <mat-nav-list class="nav-list">
-          <a mat-list-item routerLink="/dashboard" routerLinkActive="active-link">
+        
+        <mat-nav-list>
+          <a mat-list-item routerLink="/dashboard" routerLinkActive="active">
             <mat-icon matListItemIcon>dashboard</mat-icon>
-            <span matListItemTitle>{{ labels.DASHBOARD }}</span>
+            <div matListItemTitle>Dashboard</div>
           </a>
-
-          <a mat-list-item routerLink="/tasks" routerLinkActive="active-link">
-            <mat-icon matListItemIcon>task_alt</mat-icon>
-            <span matListItemTitle>{{ labels.TASKS }}</span>
+          
+          <a mat-list-item routerLink="/tasks" routerLinkActive="active">
+            <mat-icon matListItemIcon>assignment</mat-icon>
+            <div matListItemTitle>Mis Tareas</div>
           </a>
-
-          <a mat-list-item routerLink="/tasks/my" routerLinkActive="active-link">
-            <mat-icon matListItemIcon>assignment_ind</mat-icon>
-            <span matListItemTitle>{{ labels.MY_TASKS }}</span>
-          </a>
-
+          
           <mat-divider></mat-divider>
-
-          <a mat-list-item routerLink="/profile" routerLinkActive="active-link">
+          
+          <a mat-list-item routerLink="/profile" routerLinkActive="active">
             <mat-icon matListItemIcon>person</mat-icon>
-            <span matListItemTitle>{{ labels.PROFILE }}</span>
-          </a>
-
-          <a mat-list-item routerLink="/settings" routerLinkActive="active-link">
-            <mat-icon matListItemIcon>settings</mat-icon>
-            <span matListItemTitle>{{ labels.SETTINGS }}</span>
+            <div matListItemTitle>Mi Perfil</div>
           </a>
         </mat-nav-list>
       </mat-sidenav>
 
-      <!-- Main Content -->
+      <!-- Main content -->
       <mat-sidenav-content>
-        <!-- Header -->
+        <!-- Toolbar -->
         <mat-toolbar color="primary" class="main-toolbar">
           <button
             type="button"
@@ -77,39 +65,41 @@ import { UserProfile } from '../../core/models/user.interface';
             *ngIf="isHandset$ | async">
             <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
           </button>
-
-          <span class="spacer"></span>
-
-          <!-- Theme Toggle -->
-          <app-theme-toggle></app-theme-toggle>
-
-          <!-- User Menu -->
-          <button mat-button [matMenuTriggerFor]="userMenu" class="user-menu-button">
-            <div class="user-avatar">
-              {{ userProfile?.initials || 'U' }}
-            </div>
-            <span class="user-name">{{ userProfile?.fullName || 'Usuario' }}</span>
-            <mat-icon>arrow_drop_down</mat-icon>
-          </button>
-
-          <mat-menu #userMenu="matMenu">
-            <button mat-menu-item routerLink="/profile">
-              <mat-icon>person</mat-icon>
-              <span>{{ labels.PROFILE }}</span>
+          
+          <span class="toolbar-spacer"></span>
+          
+          <!-- User menu -->
+          <div class="user-menu" *ngIf="userProfile">
+            <button mat-button [matMenuTriggerFor]="userMenu" class="user-button">
+              <div class="user-avatar">{{ userProfile.initials }}</div>
+              <span class="user-name">{{ userProfile.firstName }}</span>
+              <mat-icon>arrow_drop_down</mat-icon>
             </button>
-            <button mat-menu-item routerLink="/settings">
-              <mat-icon>settings</mat-icon>
-              <span>{{ labels.SETTINGS }}</span>
-            </button>
-            <mat-divider></mat-divider>
-            <button mat-menu-item (click)="logout()">
-              <mat-icon>logout</mat-icon>
-              <span>{{ labels.LOGOUT }}</span>
-            </button>
-          </mat-menu>
+            
+            <mat-menu #userMenu="matMenu">
+              <div class="user-menu-header">
+                <div class="user-info">
+                  <div class="user-display-name">{{ userProfile.fullName }}</div>
+                  <div class="user-email">{{ userProfile.email }}</div>
+                </div>
+              </div>
+              
+              <mat-divider></mat-divider>
+              
+              <button mat-menu-item routerLink="/profile">
+                <mat-icon>person</mat-icon>
+                <span>Mi Perfil</span>
+              </button>
+              
+              <button mat-menu-item (click)="logout()">
+                <mat-icon>logout</mat-icon>
+                <span>Cerrar Sesión</span>
+              </button>
+            </mat-menu>
+          </div>
         </mat-toolbar>
 
-        <!-- Page Content -->
+        <!-- Page content -->
         <main class="main-content">
           <router-outlet></router-outlet>
         </main>
@@ -118,80 +108,70 @@ import { UserProfile } from '../../core/models/user.interface';
   `,
   styles: [`
     .sidenav-container {
-      height: 100vh;
+      height: 100%;
     }
 
     .sidenav {
-      width: 260px;
-      background: var(--mdc-theme-surface);
-      border-right: 1px solid var(--mdc-theme-outline);
+      width: 250px;
+      background: #fafafa;
+      border-right: 1px solid #e0e0e0;
     }
 
-    .sidebar-header {
-      background: var(--mdc-theme-primary);
-      color: var(--mdc-theme-on-primary);
+    .sidenav-header {
+      background: #1976d2;
+      color: white;
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 0 16px;
       min-height: 64px;
     }
 
-    .logo {
-      width: 32px;
-      height: 32px;
-      border-radius: 4px;
+    .app-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
     }
 
-    .app-name {
-      font-weight: 600;
-      font-size: 1.1rem;
-    }
-
-    .nav-list {
-      padding-top: 8px;
-    }
-
-    .nav-list a {
-      margin: 4px 8px;
-      border-radius: 8px;
-      transition: all 0.2s ease;
-    }
-
-    .nav-list a:hover {
-      background-color: var(--mdc-theme-primary-container);
-    }
-
-    .active-link {
-      background-color: var(--mdc-theme-primary-container) !important;
-      color: var(--mdc-theme-on-primary-container) !important;
+    .app-title {
+      font-size: 1.2rem;
+      font-weight: 500;
     }
 
     .main-toolbar {
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 1000;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
-    .spacer {
+    .toolbar-spacer {
       flex: 1 1 auto;
     }
 
-    .user-menu-button {
+    .user-menu {
+      display: flex;
+      align-items: center;
+    }
+
+    .user-button {
       display: flex;
       align-items: center;
       gap: 8px;
-      color: var(--mdc-theme-on-primary);
-      text-transform: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      color: white;
+    }
+
+    .user-button:hover {
+      background: rgba(255,255,255,0.1);
     }
 
     .user-avatar {
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: var(--mdc-theme-secondary);
-      color: var(--mdc-theme-on-secondary);
+      background: rgba(255,255,255,0.2);
+      color: white;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -207,19 +187,44 @@ import { UserProfile } from '../../core/models/user.interface';
       white-space: nowrap;
     }
 
+    .user-menu-header {
+      padding: 16px;
+      background: #f5f5f5;
+    }
+
+    .user-display-name {
+      font-weight: 500;
+      color: #333;
+    }
+
+    .user-email {
+      font-size: 0.875rem;
+      color: #666;
+      margin-top: 4px;
+    }
+
     .main-content {
-      padding: 24px;
+      padding: 0;
       min-height: calc(100vh - 64px);
-      background: var(--mdc-theme-surface-variant);
+      background: #f5f5f5;
+    }
+
+    .mat-mdc-list-item.active {
+      background: rgba(25, 118, 210, 0.1);
+      color: #1976d2;
+    }
+
+    .mat-mdc-list-item.active .mat-icon {
+      color: #1976d2;
     }
 
     @media (max-width: 768px) {
-      .main-content {
-        padding: 16px;
-      }
-
       .user-name {
         display: none;
+      }
+      
+      .main-content {
+        padding: 0;
       }
     }
   `],
@@ -234,12 +239,10 @@ import { UserProfile } from '../../core/models/user.interface';
     MatIconModule,
     MatListModule,
     MatMenuModule,
-    MatDividerModule,
-    ThemeToggleComponent
+    MatDividerModule
   ]
 })
 export class MainLayoutComponent implements OnInit, OnDestroy {
-  labels = UI_LABELS;
   userProfile: UserProfile | null = null;
   
   private destroy$ = new Subject<void>();
